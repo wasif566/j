@@ -174,7 +174,7 @@
 .cart-label{display:inline-block}
 @media(max-width:520px){.cart-label{display:none}}
 
-#headerSpacer { margin-top:8px;height: 0 !important; transition: height .12s ease; }
+#headerSpacer { margin-top:10px;height: 0 !important; transition: height .12s ease; }
 
 /* Cart drawer styles (scoped) */
 .cart-drawer-overlay {
@@ -710,8 +710,6 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       const tH = ticker ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
       const hH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
       const total = tH + hH;
-       const EXTRA_GAP = 12; // <-- change this to increase/decrease space between header and content
-    const total = tH + hH + EXTRA_GAP;
 
       spacer.style.height = total + 'px';
       header.style.top = tH + 'px';
@@ -806,6 +804,7 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 })();
 </script>
+
 
 
 
