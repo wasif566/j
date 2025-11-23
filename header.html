@@ -688,149 +688,104 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 </script>
 
+
+
 <script>
 (function(){
+  const MAX_RETRIES = 8;
+  const RETRY_DELAY = 200; // ms
 
-  // small helper to run safely after DOM + paint
-  function safeRun(fn){
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      requestAnimationFrame(fn);
-    } else {
-      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(fn));
-      window.addEventListener('load', () => requestAnimationFrame(fn));
-    }
-  }
+  function log(...args){ console.info('[spacer-fix]', ...args); }
+  function err(...args){ console.error('[spacer-fix]', ...args); }
 
-  // ---- spacer/header logic (robust + debounced) ----
-  safeRun(function(){
+  function measureAndSetOnce(){
     const ticker = document.querySelector('.top-ticker');
     const header = document.querySelector('.site-header');
     const spacer = document.getElementById('headerSpacer');
-    if (!header || !spacer) return;
 
-    let rafId = null;
-    function updateSpacer(){
-      // measure using offsetHeight for stable layout measurements
-      const tH = (ticker && ticker.offsetHeight) ? ticker.offsetHeight : 0;
-      const hH = header.offsetHeight || 0;
-      const total = tH + hH;
-      // only update if different to avoid layout thrash
-      const current = parseInt(spacer.style.height || '0', 10) || 0;
-      if (current !== total) spacer.style.height = total + 'px';
-      header.style.top = (tH) + 'px';
-      header.classList.toggle('scrolled', window.scrollY > 6);
+    if (!spacer) { err('No #headerSpacer element present.'); return { ok:false, reason:'no-spacer' }; }
+    if (!header) { err('No .site-header element present.'); return { ok:false, reason:'no-header' }; }
+
+    const tH = ticker ? (ticker.offsetHeight || 0) : 0;
+    const hH = header.offsetHeight || 0;
+    const total = tH + hH;
+
+    // Write using style.setProperty with priority 'important' to override stylesheet rules
+    try {
+      spacer.style.setProperty('height', total + 'px', 'important');
+      // Also ensure header top set
+      header.style.setProperty('top', tH + 'px', 'important');
+    } catch(e){
+      // fallback to non-important
+      spacer.style.height = total + 'px';
+      header.style.top = tH + 'px';
     }
 
-    function scheduleUpdate(){
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateSpacer);
-    }
+    // diagnostics: what computed style shows
+    const computedSpacer = window.getComputedStyle(spacer).height;
+    const computedHeaderTop = window.getComputedStyle(header).top;
+    log('measured tH=', tH, 'hH=', hH, 'applied total=', total, 'computed spacer=', computedSpacer, 'header.top=', computedHeaderTop);
 
-    // initial measures: wait for load & pageshow to be safe with cached pages
-    function initialMeasure(){
-      scheduleUpdate();
-      // run again a little later in case fonts/images cause reflow
-      setTimeout(scheduleUpdate, 120);
-      setTimeout(scheduleUpdate, 500);
-    }
-    if (document.readyState === 'complete') initialMeasure();
-    else {
-      window.addEventListener('load', initialMeasure, { once: true });
-      // pageshow covers bfcache/Back-forward cache cases
-      window.addEventListener('pageshow', initialMeasure);
-    }
+    const ok = parseInt(computedSpacer, 10) === total;
+    return { ok, total, measured: { tH, hH }, computed: { spacer: computedSpacer, headerTop: computedHeaderTop } };
+  }
 
-    // watch for resize and orientation changes
-    window.addEventListener('resize', scheduleUpdate, { passive: true });
-    window.addEventListener('orientationchange', scheduleUpdate, { passive: true });
-
-    // ResizeObserver for dynamic changes in header/ticker size
-    if (window.ResizeObserver) {
-      try {
-        const ro = new ResizeObserver(scheduleUpdate);
-        ro.observe(header);
-        if (ticker) ro.observe(ticker);
-      } catch (e) {
-        // ignore if ResizeObserver throws
+  // Retry strategy: try immediate after load/pageshow, with retries
+  function doRetries(){
+    let tries = 0;
+    const tryOnce = () => {
+      tries++;
+      const res = measureAndSetOnce();
+      if (res.ok) {
+        log('spacer set successfully on try', tries);
+        return;
       }
-    }
-  });
-
-  // ---- cart counter UI (reads localStorage.cartCount with fallback to clothify_cart_v1) ----
-  safeRun(function(){
-    const cartBtn = document.getElementById('cartBtn');
-    const cartCountEl = document.getElementById('cartCount');
-    const CART_KEY = 'clothify_cart_v1';
-
-    function readCountFromCartArray(){
-      try {
-        const arr = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
-        if (Array.isArray(arr)) return arr.reduce((s,i)=> s + (Number(i.qty) || 0), 0);
-      } catch(e){/* ignore */}
-      return 0;
-    }
-
-    function readCount(){
-      try{
-        const v = localStorage.getItem('cartCount');
-        const n = Number(v);
-        if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-        return readCountFromCartArray();
-      } catch(e){
-        return readCountFromCartArray();
-      }
-    }
-
-    function setCountUI(n, animate){
-      if (!cartCountEl) return;
-      const prev = Number(cartCountEl.textContent||0);
-      cartCountEl.textContent = String(n);
-      cartCountEl.setAttribute('aria-label', `${n} items in cart`);
-      if (animate && n > prev) {
-        cartCountEl.classList.remove('cart-pulse');
-        void cartCountEl.offsetWidth;
-        cartCountEl.classList.add('cart-pulse');
-      }
-    }
-
-    // initialize
-    setCountUI(readCount(), false);
-
-    // click to open cart drawer (preserve existing behavior)
-    cartBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
-        window.Clothify.openCartDrawer();
+      if (tries < MAX_RETRIES) {
+        log('spacer not correct yet (try', tries, '). retrying in', RETRY_DELAY, 'ms');
+        setTimeout(tryOnce, RETRY_DELAY);
       } else {
-        document.dispatchEvent(new CustomEvent('openCart'));
-      }
-    });
-
-    // respond to storage changes (cartCount or cart array)
-    window.addEventListener('storage', (ev) => {
-      if (ev.key === 'cartCount' || ev.key === CART_KEY) {
-        setCountUI(readCount(), true);
-      }
-    });
-
-    // respond to app events
-    document.addEventListener('cartUpdated', (e) => {
-      const n = Number(e?.detail?.count);
-      if (Number.isFinite(n)) setCountUI(Math.max(0, Math.floor(n)), true);
-      else setCountUI(readCount(), true);
-    });
-
-    // expose setter used by other parts of the app
-    window.Clothify = window.Clothify || {};
-    window.Clothify.setCartCount = function(count, persist){
-      const n = Math.max(0, Math.floor(Number(count) || 0));
-      setCountUI(n, true);
-      if (persist) {
-        try { localStorage.setItem('cartCount', String(n)); } catch(e){}
-        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
+        err('failed to set spacer correctly after', MAX_RETRIES, 'tries. Final state:', res);
+        // helpful hint: print localStorage and stylesheet count
+        try {
+          const ls = {};
+          try { ls.cartCount = localStorage.getItem('cartCount'); ls.cartKey = localStorage.getItem('clothify_cart_v1'); } catch(e){}
+          log('localStorage snapshot (cartCount/clothify_cart_v1):', ls);
+          log('Number of stylesheets loaded:', document.styleSheets.length);
+        } catch(e){}
       }
     };
-  });
+    tryOnce();
+  }
+
+  // Run on load/pageshow for robust coverage
+  if (document.readyState === 'complete') {
+    doRetries();
+  } else {
+    window.addEventListener('load', doRetries, { once: true });
+    window.addEventListener('pageshow', doRetries);
+    // also run after DOMContentLoaded as earlier fallback
+    document.addEventListener('DOMContentLoaded', () => setTimeout(doRetries, 16));
+  }
+
+  // Also respond to changes: resize/orientation/potential CSS changes
+  let raf = null;
+  function scheduleUpdate(){
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => { doRetries(); raf = null; });
+  }
+  window.addEventListener('resize', scheduleUpdate, { passive:true });
+  window.addEventListener('orientationchange', scheduleUpdate, { passive:true });
+
+  // Additionally observe header/ticker if ResizeObserver available
+  try {
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(scheduleUpdate);
+      const header = document.querySelector('.site-header');
+      const ticker = document.querySelector('.top-ticker');
+      header && ro.observe(header);
+      ticker && ro.observe(ticker);
+    }
+  } catch(e){ /* ignore */ }
 
 })();
 </script>
