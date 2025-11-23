@@ -682,62 +682,6 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 })();
 
-(function(){
-  // Keep this script minimal & safe — it ONLY updates the spacer height and cart UI.
-  const ticker = document.querySelector('.top-ticker');
-  const header = document.querySelector('.site-header');
-  const spacer = document.getElementById('headerSpacer');
-
-  function updateSpacer(){
-    const tH = ticker ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
-    const hH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
-    const total = tH + hH;
-    if (spacer) spacer.style.height = total + 'px';
-    if (header && ticker) header.style.top = (tH) + 'px';
-    if (header && !ticker) header.style.top = '0px';
-  }
-
-  function toggleHeaderShadow(){ if(!header) return; header.classList.toggle('scrolled', window.scrollY > 6); }
-
-  updateSpacer(); toggleHeaderShadow();
-  window.addEventListener('resize', updateSpacer);
-  window.addEventListener('load', updateSpacer);
-  window.addEventListener('scroll', toggleHeaderShadow, {passive:true});
-  if (window.ResizeObserver && (ticker || header)){
-    const ro = new ResizeObserver(updateSpacer);
-    ticker && ro.observe(ticker);
-    header && ro.observe(header);
-  }
-
-  // ---- cart UI (reads localStorage.cartCount and exposes helper) ----
-  const cartBtn = document.getElementById('cartBtn');
-  const cartCountEl = document.getElementById('cartCount');
-
-  function readCount(){ try{ const v = localStorage.getItem('cartCount'); const n=Number(v); return Number.isFinite(n) && n>=0 ? Math.floor(n) : 0;}catch(e){return 0;} }
-  function setCountUI(n, animate){ if(!cartCountEl) return; const prev = Number(cartCountEl.textContent||0); cartCountEl.textContent = String(n); cartCountEl.setAttribute('aria-label', `${n} items in cart`); if(animate && n>prev){ cartCountEl.classList.remove('cart-pulse'); void cartCountEl.offsetWidth; cartCountEl.classList.add('cart-pulse'); } }
-
-  setCountUI(readCount(), false);
-
-  cartBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
-      window.Clothify.openCartDrawer();
-    } else {
-      document.dispatchEvent(new CustomEvent('openCart'));
-    }
-  });
-
-  window.addEventListener('storage', (ev)=>{ if(ev.key==='cartCount') setCountUI(readCount(), true); });
-  document.addEventListener('cartUpdated', (e)=>{ const n = Number(e?.detail?.count); if(Number.isFinite(n)) setCountUI(Math.max(0,Math.floor(n)), true); else setCountUI(readCount(), true); });
-
-  window.Clothify = window.Clothify || {};
-  window.Clothify.setCartCount = function(count, persist){
-    const n = Math.max(0, Math.floor(Number(count) || 0));
-    setCountUI(n, true);
-    if(persist){ try{ localStorage.setItem('cartCount', String(n)); }catch(e){} document.dispatchEvent(new CustomEvent('cartUpdated',{detail:{count:n}})); }
-  };
-
-})();
 
 
 </script>
