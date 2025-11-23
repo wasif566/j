@@ -685,4 +685,120 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 
 </script>
+<script>
+(function(){
 
+  function safeRun(fn){
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      requestAnimationFrame(fn);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(fn));
+      window.addEventListener('load', () => requestAnimationFrame(fn));
+    }
+  }
+
+  // ---- spacer/header logic ----
+  safeRun(function(){
+    const ticker = document.querySelector('.top-ticker');
+    const header = document.querySelector('.site-header');
+    const spacer = document.getElementById('headerSpacer');
+
+    if (!header || !spacer) return;
+
+    function updateSpacer(){
+      const tH = ticker ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
+      const hH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+      const total = tH + hH;
+      spacer.style.height = total + 'px';
+      header.style.top = tH + 'px';
+      header.classList.toggle('scrolled', window.scrollY > 6);
+    }
+
+    updateSpacer();
+    window.addEventListener('resize', () => requestAnimationFrame(updateSpacer), { passive:true });
+    window.addEventListener('load', () => requestAnimationFrame(updateSpacer));
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => requestAnimationFrame(updateSpacer));
+      ro.observe(header);
+      ticker && ro.observe(ticker);
+    }
+  });
+
+  // ---- cart counter UI (reads localStorage.cartCount with fallback to clothify_cart_v1) ----
+  safeRun(function(){
+    const cartBtn = document.getElementById('cartBtn');
+    const cartCountEl = document.getElementById('cartCount');
+    const CART_KEY = 'clothify_cart_v1';
+
+    function readCountFromCartArray(){
+      try {
+        const arr = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+        if (Array.isArray(arr)) return arr.reduce((s,i)=> s + (Number(i.qty) || 0), 0);
+      } catch(e){/* ignore */}
+      return 0;
+    }
+
+    function readCount(){ 
+      try{
+        const v = localStorage.getItem('cartCount');
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= 0) return Math.floor(n);
+        // fallback: compute from cart array
+        return readCountFromCartArray();
+      } catch(e){
+        return readCountFromCartArray();
+      }
+    }
+
+    function setCountUI(n, animate){
+      if (!cartCountEl) return;
+      const prev = Number(cartCountEl.textContent||0);
+      cartCountEl.textContent = String(n);
+      cartCountEl.setAttribute('aria-label', `${n} items in cart`);
+      if (animate && n > prev) {
+        cartCountEl.classList.remove('cart-pulse');
+        void cartCountEl.offsetWidth;
+        cartCountEl.classList.add('cart-pulse');
+      }
+    }
+
+    // initialize from storage (or from cart array fallback)
+    setCountUI(readCount(), false);
+
+    // open cart drawer (preserve behavior)
+    cartBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
+        window.Clothify.openCartDrawer();
+      } else {
+        document.dispatchEvent(new CustomEvent('openCart'));
+      }
+    });
+
+    // respond to storage changes and app events
+    window.addEventListener('storage', (ev) => {
+      if (ev.key === 'cartCount' || ev.key === 'clothify_cart_v1') {
+        setCountUI(readCount(), true);
+      }
+    });
+
+    document.addEventListener('cartUpdated', (e) => {
+      const n = Number(e?.detail?.count);
+      if (Number.isFinite(n)) setCountUI(Math.max(0, Math.floor(n)), true);
+      else setCountUI(readCount(), true);
+    });
+
+    // expose setter used by cart operations
+    window.Clothify = window.Clothify || {};
+    window.Clothify.setCartCount = function(count, persist){
+      const n = Math.max(0, Math.floor(Number(count) || 0));
+      setCountUI(n, true);
+      if (persist) {
+        try { localStorage.setItem('cartCount', String(n)); } catch(e){}
+        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
+      }
+    };
+  });
+
+})();
+</script>
