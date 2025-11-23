@@ -68,7 +68,7 @@ document.addEventListener("partialsLoaded", () => {
       `;
 
       div.addEventListener("click", () => {
-        window.location.href = "/product.html?id=" + p.id;
+        window.location.href = "product.html?id=" + p.id;
       });
 
       suggBox.appendChild(div);
