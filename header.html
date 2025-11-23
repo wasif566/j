@@ -153,7 +153,6 @@
   animation-play-state: paused;
 }
 /* defensive fallback so content isn't completely overlapped if JS doesn't run */
-#headerSpacer { height: 110px; } /* tweak if your header + ticker are taller/shorter */
 
 /* small screens adjustments */
 @media (max-width:420px){
@@ -688,181 +687,149 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 </script>
 
-
-
 <script>
 (function(){
-  // STOP if already initialized
-  if (window.__spacerBadgeInit) return;
-  window.__spacerBadgeInit = true;
 
-  const CART_KEY = 'clothify_cart_v1';
-  const RETRY_DELAYS = [0, 120, 350, 900];
+  // small helper to run safely after DOM + paint
+  function safeRun(fn){
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      requestAnimationFrame(fn);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(fn));
+      window.addEventListener('load', () => requestAnimationFrame(fn));
+    }
+  }
 
-  function safeLog(...args){ try{ console.info('[spacer-badge]', ...args); }catch(e){} }
-  function safeWarn(...args){ try{ console.warn('[spacer-badge]', ...args); }catch(e){} }
-
-  // --- Spacer logic (non-destructive, retries + reactive updates) ---
-  function measureApplySpacer(){
-    const spacer = document.getElementById('headerSpacer');
-    const header = document.querySelector('.site-header');
+  // ---- spacer/header logic (robust + debounced) ----
+  safeRun(function(){
     const ticker = document.querySelector('.top-ticker');
+    const header = document.querySelector('.site-header');
+    const spacer = document.getElementById('headerSpacer');
+    if (!header || !spacer) return;
 
-    if (!spacer || !header) {
-      if (!spacer) safeWarn('No #headerSpacer found');
-      if (!header) safeWarn('No .site-header found');
-      return false;
+    let rafId = null;
+    function updateSpacer(){
+      // measure using offsetHeight for stable layout measurements
+      const tH = (ticker && ticker.offsetHeight) ? ticker.offsetHeight : 0;
+      const hH = header.offsetHeight || 0;
+      const total = tH + hH;
+      // only update if different to avoid layout thrash
+      const current = parseInt(spacer.style.height || '0', 10) || 0;
+      if (current !== total) spacer.style.height = total + 'px';
+      header.style.top = (tH) + 'px';
+      header.classList.toggle('scrolled', window.scrollY > 6);
     }
 
-    const tH = ticker ? (ticker.offsetHeight || 0) : 0;
-    const hH = header.offsetHeight || 0;
-    const total = tH + hH;
-
-    // try to set with !important to override later stylesheet rules
-    try {
-      spacer.style.setProperty('height', total + 'px', 'important');
-      header.style.setProperty('top', tH + 'px', 'important');
-    } catch(e) {
-      spacer.style.height = total + 'px';
-      header.style.top = tH + 'px';
+    function scheduleUpdate(){
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateSpacer);
     }
 
-    const computed = parseInt(window.getComputedStyle(spacer).height || '0', 10);
-    safeLog('measured', { tH, hH, total, computed });
-    return computed === total;
-  }
+    // initial measures: wait for load & pageshow to be safe with cached pages
+    function initialMeasure(){
+      scheduleUpdate();
+      // run again a little later in case fonts/images cause reflow
+      setTimeout(scheduleUpdate, 120);
+      setTimeout(scheduleUpdate, 500);
+    }
+    if (document.readyState === 'complete') initialMeasure();
+    else {
+      window.addEventListener('load', initialMeasure, { once: true });
+      // pageshow covers bfcache/Back-forward cache cases
+      window.addEventListener('pageshow', initialMeasure);
+    }
 
-  function runSpacerRetries(){
-    RETRY_DELAYS.forEach((d, i) => {
-      setTimeout(() => {
-        const ok = measureApplySpacer();
-        safeLog('spacer attempt', i+1, 'ok=', ok);
-      }, d);
-    });
-  }
+    // watch for resize and orientation changes
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    window.addEventListener('orientationchange', scheduleUpdate, { passive: true });
 
-  function setupSpacerReactive(){
-    let raf = null;
-    const job = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => { measureApplySpacer(); raf = null; });
-    };
-    window.addEventListener('resize', job, { passive: true });
-    window.addEventListener('orientationchange', job, { passive: true });
+    // ResizeObserver for dynamic changes in header/ticker size
     if (window.ResizeObserver) {
       try {
-        const ro = new ResizeObserver(job);
-        const h = document.querySelector('.site-header');
-        const t = document.querySelector('.top-ticker');
-        if (h) ro.observe(h);
-        if (t) ro.observe(t);
-      } catch(e) { /* ignore */ }
+        const ro = new ResizeObserver(scheduleUpdate);
+        ro.observe(header);
+        if (ticker) ro.observe(ticker);
+      } catch (e) {
+        // ignore if ResizeObserver throws
+      }
     }
-  }
+  });
 
-  // Init spacer: run on load/pageshow/DOMContentLoaded
-  function initSpacer(){
-    if (document.readyState === 'complete') runSpacerRetries();
-    else {
-      window.addEventListener('load', runSpacerRetries, { once: true });
-      document.addEventListener('DOMContentLoaded', () => setTimeout(runSpacerRetries, 16), { once: true });
-    }
-    window.addEventListener('pageshow', runSpacerRetries);
-    setupSpacerReactive();
-    // one last safety check
-    setTimeout(() => measureApplySpacer(), 700);
-  }
+  // ---- cart counter UI (reads localStorage.cartCount with fallback to clothify_cart_v1) ----
+  safeRun(function(){
+    const cartBtn = document.getElementById('cartBtn');
+    const cartCountEl = document.getElementById('cartCount');
+    const CART_KEY = 'clothify_cart_v1';
 
-  // --- Cart badge logic (read-only; doesn't overwrite your cart code) ---
-  function readCountFromCartArray(){
-    try {
-      const raw = localStorage.getItem(CART_KEY) || '[]';
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return 0;
-      return arr.reduce((s, it) => s + (Number(it.qty) || 0), 0);
-    } catch (e) {
+    function readCountFromCartArray(){
+      try {
+        const arr = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+        if (Array.isArray(arr)) return arr.reduce((s,i)=> s + (Number(i.qty) || 0), 0);
+      } catch(e){/* ignore */}
       return 0;
     }
-  }
 
-  function readCartCount(){
-    try {
-      const v = localStorage.getItem('cartCount');
-      const n = Number(v);
-      if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-      return readCountFromCartArray();
-    } catch (e) {
-      return readCountFromCartArray();
+    function readCount(){
+      try{
+        const v = localStorage.getItem('cartCount');
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= 0) return Math.floor(n);
+        return readCountFromCartArray();
+      } catch(e){
+        return readCountFromCartArray();
+      }
     }
-  }
 
-  function setCartBadge(value, animate){
-    const el = document.getElementById('cartCount');
-    if (!el) { safeWarn('No #cartCount element found'); return; }
-    const prev = Number(el.textContent || 0);
-    el.textContent = String(value);
-    el.setAttribute('aria-label', `${value} items in cart`);
-    if (animate && value > prev) {
-      el.classList.remove('cart-pulse');
-      void el.offsetWidth;
-      el.classList.add('cart-pulse');
+    function setCountUI(n, animate){
+      if (!cartCountEl) return;
+      const prev = Number(cartCountEl.textContent||0);
+      cartCountEl.textContent = String(n);
+      cartCountEl.setAttribute('aria-label', `${n} items in cart`);
+      if (animate && n > prev) {
+        cartCountEl.classList.remove('cart-pulse');
+        void cartCountEl.offsetWidth;
+        cartCountEl.classList.add('cart-pulse');
+      }
     }
-  }
 
-  function initCartBadge(){
-    // initial read
-    setCartBadge(readCartCount(), false);
+    // initialize
+    setCountUI(readCount(), false);
 
-    // listen for storage changes (other tabs or scripts)
-    window.addEventListener('storage', (ev) => {
-      if (!ev.key) return;
-      if (ev.key === 'cartCount' || ev.key === CART_KEY) {
-        setCartBadge(readCartCount(), true);
+    // click to open cart drawer (preserve existing behavior)
+    cartBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
+        window.Clothify.openCartDrawer();
+      } else {
+        document.dispatchEvent(new CustomEvent('openCart'));
       }
     });
 
-    // listen for app events (your code already dispatches 'cartUpdated')
+    // respond to storage changes (cartCount or cart array)
+    window.addEventListener('storage', (ev) => {
+      if (ev.key === 'cartCount' || ev.key === CART_KEY) {
+        setCountUI(readCount(), true);
+      }
+    });
+
+    // respond to app events
     document.addEventListener('cartUpdated', (e) => {
       const n = Number(e?.detail?.count);
-      if (Number.isFinite(n)) setCartBadge(Math.max(0, Math.floor(n)), true);
-      else setCartBadge(readCartCount(), true);
+      if (Number.isFinite(n)) setCountUI(Math.max(0, Math.floor(n)), true);
+      else setCountUI(readCount(), true);
     });
 
-    // if some code calls window.Clothify.setCartCount, do not overwrite it.
-    // But if it doesn't exist, expose a lightweight setter that updates the badge.
+    // expose setter used by other parts of the app
     window.Clothify = window.Clothify || {};
-    if (typeof window.Clothify.setCartCount !== 'function') {
-      window.Clothify.setCartCount = function(count, persist){
-        const n = Math.max(0, Math.floor(Number(count) || 0));
-        setCartBadge(n, true);
-        if (persist) {
-          try { localStorage.setItem('cartCount', String(n)); } catch(e) {}
-          document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
-        }
-      };
-    }
-  }
-
-  // --- start ---
-  try {
-    initSpacer();
-    initCartBadge();
-
-    // final check after a bit: if computed spacer is zero, print helpful diagnostics
-    setTimeout(() => {
-      const s = document.getElementById('headerSpacer');
-      if (s) {
-        const ch = parseInt(window.getComputedStyle(s).height || '0', 10);
-        if (ch === 0) {
-          safeWarn('headerSpacer computed height is 0 after init — check for CSS overriding rules (search for "#headerSpacer" in Styles).');
-          safeLog('styleSheets loaded:', document.styleSheets.length);
-        } else {
-          safeLog('headerSpacer final height:', ch);
-        }
+    window.Clothify.setCartCount = function(count, persist){
+      const n = Math.max(0, Math.floor(Number(count) || 0));
+      setCountUI(n, true);
+      if (persist) {
+        try { localStorage.setItem('cartCount', String(n)); } catch(e){}
+        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
       }
-    }, 1200);
-  } catch (e) {
-    safeWarn('spacer-badge init error', e);
-  }
+    };
+  });
+
 })();
 </script>
