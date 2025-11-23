@@ -692,62 +692,64 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 <script>
 (function(){
-  if (window.__spacerCartInit) return; // avoid duplicate init
+  // Prevent double-init
+  if (window.__spacerCartInit) return;
   window.__spacerCartInit = true;
 
   const CART_KEY = 'clothify_cart_v1';
-  const RETRIES = [0, 120, 300, 800]; // ms delays to retry measurements
+  const RETRY_DELAYS = [0, 120, 350, 900]; // attempts to cover late loading resources
 
-  function log(...args){ try{ console.info('[spacer-cart]', ...args); }catch(e){} }
-  function warn(...args){ try{ console.warn('[spacer-cart]', ...args); }catch(e){} }
-  function err(...args){ try{ console.error('[spacer-cart]', ...args); }catch(e){} }
+  function log(...a){ try{ console.info('[spacer-cart]', ...a); }catch(e){} }
+  function warn(...a){ try{ console.warn('[spacer-cart]', ...a); }catch(e){} }
+  function error(...a){ try{ console.error('[spacer-cart]', ...a); }catch(e){} }
 
   // ---------- spacer logic ----------
-  function measureAndApplySpacer(){
+  function measureAndApply(){
     const spacer = document.getElementById('headerSpacer');
     const header = document.querySelector('.site-header');
     const ticker = document.querySelector('.top-ticker');
 
-    if (!spacer) { err('No #headerSpacer found'); return false; }
-    if (!header) { err('No .site-header found'); return false; }
+    if (!spacer) { error('No #headerSpacer found'); return false; }
+    if (!header) { error('No .site-header found'); return false; }
 
+    // stable measurements
     const tH = ticker ? (ticker.offsetHeight || 0) : 0;
     const hH = header.offsetHeight || 0;
     const total = tH + hH;
 
-    // try to set with !important, fallback to normal set
+    // apply with important where possible to override CSS
     try {
       spacer.style.setProperty('height', total + 'px', 'important');
       header.style.setProperty('top', tH + 'px', 'important');
-    } catch (e) {
+    } catch(e) {
       spacer.style.height = total + 'px';
       header.style.top = tH + 'px';
     }
 
-    // verify computed style
     const computedHeight = parseInt(window.getComputedStyle(spacer).height || '0', 10);
-    const computedTop = window.getComputedStyle(header).top || '';
-    log('measured', { tH, hH, total, computedHeight, computedTop });
+    log('measure', { tH, hH, total, computedHeight });
     return computedHeight === total;
   }
 
-  function runSpacerRetries(){
-    // run several times at increasing intervals to cover late images/fonts/CSS
-    RETRIES.forEach((delay, i) => {
+  function runRetries(){
+    RETRY_DELAYS.forEach((delay, i) => {
       setTimeout(() => {
-        const ok = measureAndApplySpacer();
-        if (ok) log('spacer applied ok at attempt', i+1);
-        else log('spacer attempt', i+1, 'computed mismatch (will retry if attempts left)');
+        const ok = measureAndApply();
+        if (ok) log('spacer OK on attempt', i+1);
+        else log('spacer mismatch on attempt', i+1);
       }, delay);
     });
   }
 
-  // schedule continuous updates for resize/ro
-  function scheduleSpacerRAF(){
+  function scheduleReactiveUpdates(){
     let raf = null;
-    const job = () => { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { measureAndApplySpacer(); raf = null; }); };
-    window.addEventListener('resize', job, { passive:true });
-    window.addEventListener('orientationchange', job, { passive:true });
+    const job = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => { measureAndApply(); raf = null; });
+    };
+    window.addEventListener('resize', job, { passive: true });
+    window.addEventListener('orientationchange', job, { passive: true });
+
     if (window.ResizeObserver) {
       try {
         const ro = new ResizeObserver(job);
@@ -755,33 +757,31 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
         const ticker = document.querySelector('.top-ticker');
         header && ro.observe(header);
         ticker && ro.observe(ticker);
-      } catch(e) {}
+      } catch(e){}
     }
   }
 
-  // run initial measurements on load/pageshow/domready
   function initSpacer(){
-    if (document.readyState === 'complete') {
-      runSpacerRetries();
-    } else {
-      window.addEventListener('load', runSpacerRetries, { once: true });
-      document.addEventListener('DOMContentLoaded', () => { setTimeout(runSpacerRetries, 16); }, { once: true });
+    // run on load/pageshow/domready with retries to cover late resources & bfcache
+    if (document.readyState === 'complete') runRetries();
+    else {
+      window.addEventListener('load', runRetries, { once: true });
+      document.addEventListener('DOMContentLoaded', () => setTimeout(runRetries, 16), { once: true });
     }
-    // pageshow for bfcache navigation
-    window.addEventListener('pageshow', runSpacerRetries);
-    scheduleSpacerRAF();
+    window.addEventListener('pageshow', runRetries);
+    scheduleReactiveUpdates();
+    // extra verification in a short while (covers fonts/images that reflow)
+    setTimeout(() => { measureAndApply(); }, 600);
   }
 
-  // ---------- cart count logic ----------
-  function readCountFromCartArray(){
+  // ---------- cart badge logic ----------
+  function readFromCartArray(){
     try {
       const raw = localStorage.getItem(CART_KEY) || '[]';
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr)) return 0;
       return arr.reduce((s, it) => s + (Number(it.qty) || 0), 0);
-    } catch (e) {
-      return 0;
-    }
+    } catch(e){ return 0; }
   }
 
   function readCartCount(){
@@ -789,16 +789,15 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       const v = localStorage.getItem('cartCount');
       const n = Number(v);
       if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-      // fallback
-      return readCountFromCartArray();
-    } catch (e) {
-      return readCountFromCartArray();
+      return readFromCartArray();
+    } catch(e){
+      return readFromCartArray();
     }
   }
 
   function setCartBadge(n, animate){
     const el = document.getElementById('cartCount');
-    if (!el) { warn('cartCount element missing'); return; }
+    if (!el) { warn('No #cartCount element'); return; }
     const prev = Number(el.textContent || 0);
     el.textContent = String(n);
     el.setAttribute('aria-label', `${n} items in cart`);
@@ -813,7 +812,7 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
     // initial
     setCartBadge(readCartCount(), false);
 
-    // storage listener (other tabs or other scripts)
+    // storage updates from other tabs or scripts
     window.addEventListener('storage', (ev) => {
       if (!ev.key) return;
       if (ev.key === 'cartCount' || ev.key === CART_KEY) {
@@ -821,16 +820,16 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       }
     });
 
-    // app events
+    // event-based updates within same page
     document.addEventListener('cartUpdated', (e) => {
       const n = Number(e?.detail?.count);
       if (Number.isFinite(n)) setCartBadge(Math.max(0, Math.floor(n)), true);
       else setCartBadge(readCartCount(), true);
     });
 
-    // expose setter (if other code calls it)
+    // expose stable setter for other scripts
     window.Clothify = window.Clothify || {};
-    if (!window.Clothify.setCartCount || typeof window.Clothify.setCartCount !== 'function') {
+    if (typeof window.Clothify.setCartCount !== 'function') {
       window.Clothify.setCartCount = function(count, persist){
         const n = Math.max(0, Math.floor(Number(count) || 0));
         setCartBadge(n, true);
@@ -842,47 +841,24 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
     }
   }
 
-  // ---------- safety: ensure we don't get later CSS overriding with !important ----------
-  // This script applies spacer height with !important. If you STILL see height=0:
-  //  - check DevTools: search for "#headerSpacer" or "height:0 !important" in Styles panel (right side).
-  //  - check document.styleSheets for rules that may override.
-  function debugStylesIfStillZero(){
-    const spacer = document.getElementById('headerSpacer');
-    if (!spacer) return;
-    const computed = parseInt(window.getComputedStyle(spacer).height || '0', 10);
-    if (computed === 0) {
-      warn('Computed spacer height is 0 after script. Inspecting stylesheets...');
-      try {
-        const rules = [];
-        for (let i=0;i<document.styleSheets.length;i++){
-          const ss = document.styleSheets[i];
-          try {
-            const cssRules = ss.cssRules || ss.rules;
-            for (let j=0;j<cssRules.length;j++){
-              const r = cssRules[j];
-              if (r && typeof r.cssText === 'string' && r.cssText.includes('#headerSpacer')) {
-                rules.push({sheet: ss.href || 'inline', rule: r.cssText});
-              }
-            }
-          } catch(e) {
-            // cross-origin stylesheets will throw when accessing cssRules — that's fine
-          }
-        }
-        log('headerSpacer CSS rules found:', rules);
-      } catch(e){}
-    }
-  }
-
-  // ---------- init ----------
+  // ---------- start ----------
   try {
     initSpacer();
     initCartBadge();
-
-    // run debug after short delay to detect overrides
-    setTimeout(debugStylesIfStillZero, 900);
-    setTimeout(debugStylesIfStillZero, 1800);
-  } catch(e){
-    err('init error', e);
+    // diagnostic check if computed spacer is still zero shortly after init
+    setTimeout(() => {
+      const s = document.getElementById('headerSpacer');
+      if (s) {
+        const ch = parseInt(window.getComputedStyle(s).height || '0', 10);
+        if (ch === 0) {
+          warn('Computed headerSpacer height is 0 after init — please check for later CSS rules overriding it (search for "#headerSpacer" and "!important").');
+          // print some debug info
+          log('styleSheets loaded:', document.styleSheets.length);
+        } else log('final spacer height:', ch);
+      }
+    }, 1200);
+  } catch (e) {
+    error('init error', e);
   }
 
 })();
