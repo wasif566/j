@@ -692,100 +692,198 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 <script>
 (function(){
-  const MAX_RETRIES = 8;
-  const RETRY_DELAY = 200; // ms
+  if (window.__spacerCartInit) return; // avoid duplicate init
+  window.__spacerCartInit = true;
 
-  function log(...args){ console.info('[spacer-fix]', ...args); }
-  function err(...args){ console.error('[spacer-fix]', ...args); }
+  const CART_KEY = 'clothify_cart_v1';
+  const RETRIES = [0, 120, 300, 800]; // ms delays to retry measurements
 
-  function measureAndSetOnce(){
-    const ticker = document.querySelector('.top-ticker');
-    const header = document.querySelector('.site-header');
+  function log(...args){ try{ console.info('[spacer-cart]', ...args); }catch(e){} }
+  function warn(...args){ try{ console.warn('[spacer-cart]', ...args); }catch(e){} }
+  function err(...args){ try{ console.error('[spacer-cart]', ...args); }catch(e){} }
+
+  // ---------- spacer logic ----------
+  function measureAndApplySpacer(){
     const spacer = document.getElementById('headerSpacer');
+    const header = document.querySelector('.site-header');
+    const ticker = document.querySelector('.top-ticker');
 
-    if (!spacer) { err('No #headerSpacer element present.'); return { ok:false, reason:'no-spacer' }; }
-    if (!header) { err('No .site-header element present.'); return { ok:false, reason:'no-header' }; }
+    if (!spacer) { err('No #headerSpacer found'); return false; }
+    if (!header) { err('No .site-header found'); return false; }
 
     const tH = ticker ? (ticker.offsetHeight || 0) : 0;
     const hH = header.offsetHeight || 0;
     const total = tH + hH;
 
-    // Write using style.setProperty with priority 'important' to override stylesheet rules
+    // try to set with !important, fallback to normal set
     try {
       spacer.style.setProperty('height', total + 'px', 'important');
-      // Also ensure header top set
       header.style.setProperty('top', tH + 'px', 'important');
-    } catch(e){
-      // fallback to non-important
+    } catch (e) {
       spacer.style.height = total + 'px';
       header.style.top = tH + 'px';
     }
 
-    // diagnostics: what computed style shows
-    const computedSpacer = window.getComputedStyle(spacer).height;
-    const computedHeaderTop = window.getComputedStyle(header).top;
-    log('measured tH=', tH, 'hH=', hH, 'applied total=', total, 'computed spacer=', computedSpacer, 'header.top=', computedHeaderTop);
-
-    const ok = parseInt(computedSpacer, 10) === total;
-    return { ok, total, measured: { tH, hH }, computed: { spacer: computedSpacer, headerTop: computedHeaderTop } };
+    // verify computed style
+    const computedHeight = parseInt(window.getComputedStyle(spacer).height || '0', 10);
+    const computedTop = window.getComputedStyle(header).top || '';
+    log('measured', { tH, hH, total, computedHeight, computedTop });
+    return computedHeight === total;
   }
 
-  // Retry strategy: try immediate after load/pageshow, with retries
-  function doRetries(){
-    let tries = 0;
-    const tryOnce = () => {
-      tries++;
-      const res = measureAndSetOnce();
-      if (res.ok) {
-        log('spacer set successfully on try', tries);
-        return;
-      }
-      if (tries < MAX_RETRIES) {
-        log('spacer not correct yet (try', tries, '). retrying in', RETRY_DELAY, 'ms');
-        setTimeout(tryOnce, RETRY_DELAY);
-      } else {
-        err('failed to set spacer correctly after', MAX_RETRIES, 'tries. Final state:', res);
-        // helpful hint: print localStorage and stylesheet count
-        try {
-          const ls = {};
-          try { ls.cartCount = localStorage.getItem('cartCount'); ls.cartKey = localStorage.getItem('clothify_cart_v1'); } catch(e){}
-          log('localStorage snapshot (cartCount/clothify_cart_v1):', ls);
-          log('Number of stylesheets loaded:', document.styleSheets.length);
-        } catch(e){}
-      }
-    };
-    tryOnce();
+  function runSpacerRetries(){
+    // run several times at increasing intervals to cover late images/fonts/CSS
+    RETRIES.forEach((delay, i) => {
+      setTimeout(() => {
+        const ok = measureAndApplySpacer();
+        if (ok) log('spacer applied ok at attempt', i+1);
+        else log('spacer attempt', i+1, 'computed mismatch (will retry if attempts left)');
+      }, delay);
+    });
   }
 
-  // Run on load/pageshow for robust coverage
-  if (document.readyState === 'complete') {
-    doRetries();
-  } else {
-    window.addEventListener('load', doRetries, { once: true });
-    window.addEventListener('pageshow', doRetries);
-    // also run after DOMContentLoaded as earlier fallback
-    document.addEventListener('DOMContentLoaded', () => setTimeout(doRetries, 16));
-  }
-
-  // Also respond to changes: resize/orientation/potential CSS changes
-  let raf = null;
-  function scheduleUpdate(){
-    if (raf) cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => { doRetries(); raf = null; });
-  }
-  window.addEventListener('resize', scheduleUpdate, { passive:true });
-  window.addEventListener('orientationchange', scheduleUpdate, { passive:true });
-
-  // Additionally observe header/ticker if ResizeObserver available
-  try {
+  // schedule continuous updates for resize/ro
+  function scheduleSpacerRAF(){
+    let raf = null;
+    const job = () => { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { measureAndApplySpacer(); raf = null; }); };
+    window.addEventListener('resize', job, { passive:true });
+    window.addEventListener('orientationchange', job, { passive:true });
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(scheduleUpdate);
-      const header = document.querySelector('.site-header');
-      const ticker = document.querySelector('.top-ticker');
-      header && ro.observe(header);
-      ticker && ro.observe(ticker);
+      try {
+        const ro = new ResizeObserver(job);
+        const header = document.querySelector('.site-header');
+        const ticker = document.querySelector('.top-ticker');
+        header && ro.observe(header);
+        ticker && ro.observe(ticker);
+      } catch(e) {}
     }
-  } catch(e){ /* ignore */ }
+  }
+
+  // run initial measurements on load/pageshow/domready
+  function initSpacer(){
+    if (document.readyState === 'complete') {
+      runSpacerRetries();
+    } else {
+      window.addEventListener('load', runSpacerRetries, { once: true });
+      document.addEventListener('DOMContentLoaded', () => { setTimeout(runSpacerRetries, 16); }, { once: true });
+    }
+    // pageshow for bfcache navigation
+    window.addEventListener('pageshow', runSpacerRetries);
+    scheduleSpacerRAF();
+  }
+
+  // ---------- cart count logic ----------
+  function readCountFromCartArray(){
+    try {
+      const raw = localStorage.getItem(CART_KEY) || '[]';
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return 0;
+      return arr.reduce((s, it) => s + (Number(it.qty) || 0), 0);
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function readCartCount(){
+    try {
+      const v = localStorage.getItem('cartCount');
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0) return Math.floor(n);
+      // fallback
+      return readCountFromCartArray();
+    } catch (e) {
+      return readCountFromCartArray();
+    }
+  }
+
+  function setCartBadge(n, animate){
+    const el = document.getElementById('cartCount');
+    if (!el) { warn('cartCount element missing'); return; }
+    const prev = Number(el.textContent || 0);
+    el.textContent = String(n);
+    el.setAttribute('aria-label', `${n} items in cart`);
+    if (animate && n > prev) {
+      el.classList.remove('cart-pulse');
+      void el.offsetWidth;
+      el.classList.add('cart-pulse');
+    }
+  }
+
+  function initCartBadge(){
+    // initial
+    setCartBadge(readCartCount(), false);
+
+    // storage listener (other tabs or other scripts)
+    window.addEventListener('storage', (ev) => {
+      if (!ev.key) return;
+      if (ev.key === 'cartCount' || ev.key === CART_KEY) {
+        setCartBadge(readCartCount(), true);
+      }
+    });
+
+    // app events
+    document.addEventListener('cartUpdated', (e) => {
+      const n = Number(e?.detail?.count);
+      if (Number.isFinite(n)) setCartBadge(Math.max(0, Math.floor(n)), true);
+      else setCartBadge(readCartCount(), true);
+    });
+
+    // expose setter (if other code calls it)
+    window.Clothify = window.Clothify || {};
+    if (!window.Clothify.setCartCount || typeof window.Clothify.setCartCount !== 'function') {
+      window.Clothify.setCartCount = function(count, persist){
+        const n = Math.max(0, Math.floor(Number(count) || 0));
+        setCartBadge(n, true);
+        if (persist) {
+          try { localStorage.setItem('cartCount', String(n)); } catch(e){}
+          document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
+        }
+      };
+    }
+  }
+
+  // ---------- safety: ensure we don't get later CSS overriding with !important ----------
+  // This script applies spacer height with !important. If you STILL see height=0:
+  //  - check DevTools: search for "#headerSpacer" or "height:0 !important" in Styles panel (right side).
+  //  - check document.styleSheets for rules that may override.
+  function debugStylesIfStillZero(){
+    const spacer = document.getElementById('headerSpacer');
+    if (!spacer) return;
+    const computed = parseInt(window.getComputedStyle(spacer).height || '0', 10);
+    if (computed === 0) {
+      warn('Computed spacer height is 0 after script. Inspecting stylesheets...');
+      try {
+        const rules = [];
+        for (let i=0;i<document.styleSheets.length;i++){
+          const ss = document.styleSheets[i];
+          try {
+            const cssRules = ss.cssRules || ss.rules;
+            for (let j=0;j<cssRules.length;j++){
+              const r = cssRules[j];
+              if (r && typeof r.cssText === 'string' && r.cssText.includes('#headerSpacer')) {
+                rules.push({sheet: ss.href || 'inline', rule: r.cssText});
+              }
+            }
+          } catch(e) {
+            // cross-origin stylesheets will throw when accessing cssRules — that's fine
+          }
+        }
+        log('headerSpacer CSS rules found:', rules);
+      } catch(e){}
+    }
+  }
+
+  // ---------- init ----------
+  try {
+    initSpacer();
+    initCartBadge();
+
+    // run debug after short delay to detect overrides
+    setTimeout(debugStylesIfStillZero, 900);
+    setTimeout(debugStylesIfStillZero, 1800);
+  } catch(e){
+    err('init error', e);
+  }
 
 })();
 </script>
