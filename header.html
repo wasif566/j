@@ -152,6 +152,8 @@
 .top-ticker:focus-within .ticker-track {
   animation-play-state: paused;
 }
+/* defensive fallback so content isn't completely overlapped if JS doesn't run */
+#headerSpacer { height: 110px; } /* tweak if your header + ticker are taller/shorter */
 
 /* small screens adjustments */
 @media (max-width:420px){
@@ -685,9 +687,11 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 
 </script>
+
 <script>
 (function(){
 
+  // small helper to run safely after DOM + paint
   function safeRun(fn){
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       requestAnimationFrame(fn);
@@ -697,30 +701,58 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
     }
   }
 
-  // ---- spacer/header logic ----
+  // ---- spacer/header logic (robust + debounced) ----
   safeRun(function(){
     const ticker = document.querySelector('.top-ticker');
     const header = document.querySelector('.site-header');
     const spacer = document.getElementById('headerSpacer');
-
     if (!header || !spacer) return;
 
+    let rafId = null;
     function updateSpacer(){
-      const tH = ticker ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
-      const hH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+      // measure using offsetHeight for stable layout measurements
+      const tH = (ticker && ticker.offsetHeight) ? ticker.offsetHeight : 0;
+      const hH = header.offsetHeight || 0;
       const total = tH + hH;
-      spacer.style.height = total + 'px';
-      header.style.top = tH + 'px';
+      // only update if different to avoid layout thrash
+      const current = parseInt(spacer.style.height || '0', 10) || 0;
+      if (current !== total) spacer.style.height = total + 'px';
+      header.style.top = (tH) + 'px';
       header.classList.toggle('scrolled', window.scrollY > 6);
     }
 
-    updateSpacer();
-    window.addEventListener('resize', () => requestAnimationFrame(updateSpacer), { passive:true });
-    window.addEventListener('load', () => requestAnimationFrame(updateSpacer));
+    function scheduleUpdate(){
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateSpacer);
+    }
+
+    // initial measures: wait for load & pageshow to be safe with cached pages
+    function initialMeasure(){
+      scheduleUpdate();
+      // run again a little later in case fonts/images cause reflow
+      setTimeout(scheduleUpdate, 120);
+      setTimeout(scheduleUpdate, 500);
+    }
+    if (document.readyState === 'complete') initialMeasure();
+    else {
+      window.addEventListener('load', initialMeasure, { once: true });
+      // pageshow covers bfcache/Back-forward cache cases
+      window.addEventListener('pageshow', initialMeasure);
+    }
+
+    // watch for resize and orientation changes
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    window.addEventListener('orientationchange', scheduleUpdate, { passive: true });
+
+    // ResizeObserver for dynamic changes in header/ticker size
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(() => requestAnimationFrame(updateSpacer));
-      ro.observe(header);
-      ticker && ro.observe(ticker);
+      try {
+        const ro = new ResizeObserver(scheduleUpdate);
+        ro.observe(header);
+        if (ticker) ro.observe(ticker);
+      } catch (e) {
+        // ignore if ResizeObserver throws
+      }
     }
   });
 
@@ -738,12 +770,11 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       return 0;
     }
 
-    function readCount(){ 
+    function readCount(){
       try{
         const v = localStorage.getItem('cartCount');
         const n = Number(v);
         if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-        // fallback: compute from cart array
         return readCountFromCartArray();
       } catch(e){
         return readCountFromCartArray();
@@ -762,10 +793,10 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       }
     }
 
-    // initialize from storage (or from cart array fallback)
+    // initialize
     setCountUI(readCount(), false);
 
-    // open cart drawer (preserve behavior)
+    // click to open cart drawer (preserve existing behavior)
     cartBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
@@ -775,20 +806,21 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       }
     });
 
-    // respond to storage changes and app events
+    // respond to storage changes (cartCount or cart array)
     window.addEventListener('storage', (ev) => {
-      if (ev.key === 'cartCount' || ev.key === 'clothify_cart_v1') {
+      if (ev.key === 'cartCount' || ev.key === CART_KEY) {
         setCountUI(readCount(), true);
       }
     });
 
+    // respond to app events
     document.addEventListener('cartUpdated', (e) => {
       const n = Number(e?.detail?.count);
       if (Number.isFinite(n)) setCountUI(Math.max(0, Math.floor(n)), true);
       else setCountUI(readCount(), true);
     });
 
-    // expose setter used by cart operations
+    // expose setter used by other parts of the app
     window.Clothify = window.Clothify || {};
     window.Clothify.setCartCount = function(count, persist){
       const n = Math.max(0, Math.floor(Number(count) || 0));
