@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title>Green Tex — Home</title>
-  <link rel="stylesheet" href="/style.css"> 
+  <link rel="stylesheet" href="style.css"> 
   <link rel="stylesheet" href="home&products.css">
   <style>
 
@@ -47,7 +47,7 @@
         <div id="productGrid" class="products"></div>
 
 <a id="whatsappContact" class="whatsapp-contact" href="#" role="button" aria-label="Contact us on WhatsApp" rel="noopener" target="_blank">
-  <img src="bodyimages/download.png" alt="WhatsApp" width="48" height="48" loading="lazy">
+  <img src="download.png" alt="WhatsApp" width="48" height="48" loading="lazy">
   <span class="whatsapp-label">Contact us</span>
 </a>
 
@@ -124,7 +124,7 @@ function renderProductsToGrid(items, gridId){
     const openProd = () => {
       const id = thumb.getAttribute('data-id') || titleEl.getAttribute('data-id');
       if(!id) return;
-      window.location.href = `/product.html?id=${encodeURIComponent(id)}`;
+      window.location.href = `product.html?id=${encodeURIComponent(id)}`;
     };
 
     thumb.addEventListener('click', openProd);
