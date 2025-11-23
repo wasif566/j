@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Product — Clothify</title>
+
+<link rel="stylesheet" href="style.css">
+<style>
+  :root{
+    --accent:#ff6b6b; --accent-2:#ff8a66; --dark:#0f1724; --muted:#6b7280;
+    --bg:#fbfbfd; --card:#fff; --glass:rgba(15,23,36,0.04); --radius:12px;
+    --max-w:1200px; --shadow:0 12px 40px rgba(15,23,36,0.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg),#f6f7fb);color:var(--dark);-webkit-font-smoothing:antialiased}
+#siteHeader{
+  margin-top: -6px;
+}
+.badge{
+  background: linear-gradient(90deg, #ff6b6b, #ff8a66);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+}
+
+/* layout */
+.product-page{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow) }
+.gallery{display:flex;flex-direction:column;gap:12px; margin-top: 80px;}
+.main-img{border-radius:10px;overflow:hidden;background:#f6f6f7;box-shadow:0 6px 20px rgba(0,0,0,0.06)  ;min-height:750px !important; }
+.main-img img{width:100%;height:100%;display:block;object-fit:cover}
+.thumbs{display:flex;gap:8px;margin-top:8px}
+.thumb{width:72px;height:96px;border-radius:8px;overflow:hidden;cursor:pointer;border:1px solid rgba(15,23,36,0.04)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.active{outline:3px solid rgba(255,107,107,0.14);transform:translateY(-4px)}
+
+.details{padding:6px 4px; margin-top: 80px;}
+.meta{color:var(--muted);font-size:13px;margin-bottom:6px}
+.title{font-size:20px;font-weight:800;margin:0 0 8px;color:#111}
+.desc{color:var(--muted);margin:0 0 12px;font-size:14px;line-height:1.5}
+
+.price-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.orig-price{color:var(--muted);text-decoration:line-through;font-weight:700}
+.sale-price{font-weight:900;color:var(--accent);font-size:20px}
+
+/* sizes */
+.size-label{font-weight:700;margin-bottom:8px}
+.sizes{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.size-btn{padding:8px 12px;border-radius:10px;border:1px solid rgba(15,23,36,0.06);background:transparent;cursor:pointer;font-weight:700}
+.size-btn.selected{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:0;box-shadow:0 8px 24px rgba(255,107,107,0.09)}
+
+/* qty + add to cart */
+.row{display:flex;gap:12px;align-items:center}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:34px;height:34px;border-radius:8px;border:1px solid rgba(15,23,36,0.06);background:#fff;cursor:pointer;font-weight:800}
+.qty .value{min-width:38px;text-align:center;font-weight:700}
+
+.add-btn{padding:12px 16px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:800;cursor:pointer;box-shadow:0 8px 30px rgba(255,107,107,0.12)}
+
+.guide{margin-top:12px;color:var(--muted);font-size:13px}
+.small{font-size:13px;color:var(--muted)}
+
+/* responsive */
+@media (max-width:900px){
+
+     .main-img { margin-top: 100px;min-height:900px !important; border-radius:20px ;}
+  .product-page{grid-template-columns:1fr;gap:16px}
+  
+  .details{
+    margin-top: -5px;
+  }
+}
+
+@media (max-width:450px) {
+      .main-img { margin-top: 80px;min-height:700px !important; border-radius:30px ;}
+      .details{
+    margin-top: -100px!important; 
+      }
+    
+  
+  }
+ 
+  
+
+
+@media (max-width:360px) {
+      .main-img { margin-top: 60px;min-height:600px !important; border-radius:10px ;}
+      
+  .details{
+    margin-top: -100px!important; 
+  }
+}
+@media (max-width:520px) {
+
+  .details{
+    margin-top: -150px;
+  }
+  .main-img {
+    margin-top: -30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    overflow:hidden;
+    background:#f6f6f7;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+  }
+  .main-img img {
+    max-width:100%;
+    height:auto;
+    object-fit:contain;
+    object-position:center;
+  }
+}
+
+
+
+@media (max-width:320px) {
+  .main-img {
+    height: 300px !important;}
+    .badge{
+      font-size:12px;
+      font-weight: 600;
+      padding:4px 8px;
+    
+ }
+
+ .add-btn{
+  font-weight: 500;
+font-size: 10px;
+ }
+  }
+
+
+
+  /* Modal background */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Modal image */
+.modal-content {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+}
+
+/* Close button */
+.close {
+  position: absolute;
+  top: 15px;
+  right: 25px;
+  color: white;
+  font-size: 35px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.size-guide-link{
+  font-size: 14px;
+  color: black !important;
+  text-decoration: none; 
+}
+
+.size-guide-link:hover {
+  text-decoration: underline;
+}
+
+/* subtle focus states */
+button:focus, [role="button"]:focus {outline:3px solid rgba(0,0,0,0.06);outline-offset:2px}
+.thumbs{
+  display: none ;
+}
+</style>
+</head>
+<body>
+
+  <!-- HEADER placeholder (loader will inject header partial here) -->
+  <div id="siteHeader" aria-hidden="true"></div>
+
+
+  <!-- Product content -->
+  <main style="max-width:var(--max-w);margin:28px auto;padding:0 18px;">
+    <div id="productWrap" class="product-page" aria-live="polite">
+      <!-- gallery -->
+      <div class="gallery">
+        <div class="main-img" id="mainImage" style="height:420px" >
+          <img src="" alt="" id="mainImgEl">
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <!-- details -->
+      <div class="details">
+        <div class="meta" id="category"></div>
+        <h1 class="title" id="title">Product Title</h1>
+        <p class="desc" id="desc">Product description</p>
+
+        <div class="price-row">
+          <div class="orig-price" id="origPrice"></div>
+          <div class="sale-price" id="salePrice"></div>
+          <div style="margin-left:auto" class="badge" id="badge">25% OFF</div>
+        </div>
+
+        <div>
+          <div class="size-label" id="sizeLabel">Size</div>
+          <div class="sizes" id="sizes">
+            <!-- buttons injected -->
+          </div>
+<div class="guide" id="sizeGuide">
+  <strong><a href="#" id="openSizeGuide" class="size-guide-link">Size guide</a></strong>
+</div>
+
+<!-- Popup Modal -->
+<div id="sizeGuideModal" class="modal">
+  <span class="close">&times;</span>
+  <img class="modal-content" id="sizeGuideImage">
+</div>
+
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="row">
+          <div class="qty">
+            <button id="decQty" aria-label="Decrease quantity">−</button>
+            <div class="value" id="qtyValue">1</div>
+            <button id="incQty" aria-label="Increase quantity">+</button>
+          </div>
+
+          <button class="add-btn" id="addToCartBtn">Add to cart</button>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="small">Free returns · Secure Checkout · All Over Pakistan Shipping</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER placeholder (loader will inject footer partial here) -->
+  <div id="siteFooter" aria-hidden="true"></div>
+
+  <!-- loader must come after placeholders -->
+  <script src="load-partials.js" defer></script>
+      <script src="site-search.js"></script>
+<script>
+/* ---------- Updated product page JS (replace existing <script> content with this) ---------- */
+
+/* ---------- CONFIG / JSON SOURCES ---------- */
+const JSON_PATHS = ['stiched35.json', 'unstitched35.json'];
+const STORAGE_KEY = 'clothify_cart_v1';
+
+/* ---------- DOM HELPERS ---------- */
+function $ (s){ return document.querySelector(s) }
+function q (s){ return Array.from(document.querySelectorAll(s)) }
+function formatRs(n){ return 'Rs ' + Number(n).toLocaleString(); }
+function getParam(name){ const u = new URL(location.href); return u.searchParams.get(name) }
+
+/* ---------- state ---------- */
+let product = null;
+let selectedSize = 'M';
+let qty = 1;
+let activeThumb = 0;
+
+/* ---------- cart helpers ---------- */
+function loadCart(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch(e){ return [] } }
+function saveCart(cart){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch(e){} }
+function updateHeaderCartCount() {
+  try {
+    const cart = loadCart();
+    const total = cart.reduce((s, item) => s + (Number(item.qty) || 0), 0);
+
+    if (window.Clothify && typeof window.Clothify.setCartCount === 'function') {
+      window.Clothify.setCartCount(total, true);
+    } else {
+      try { localStorage.setItem('cartCount', String(total)); } catch(e){}
+      document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: total } }));
+    }
+  } catch(e) {
+    console.error('updateHeaderCartCount error', e);
+  }
+}
+
+/* ---------- UI refs ---------- */
+const mainImgEl = $('#mainImgEl');
+const thumbsEl = $('#thumbs');
+const titleEl = $('#title');
+const descEl = $('#desc');
+const categoryEl = $('#category');
+const origPriceEl = $('#origPrice');
+const salePriceEl = $('#salePrice');
+const badgeEl = $('#badge');
+const sizesEl = $('#sizes');
+const sizeLabelEl = $('#sizeLabel');
+const sizeGuideEl = $('#sizeGuide');
+const qtyValueEl = $('#qtyValue');
+const decQtyBtn = $('#decQty');
+const incQtyBtn = $('#incQty');
+const addToCartBtn = $('#addToCartBtn');
+
+/* ---------- load product data from JSON files ---------- */
+async function loadAllProducts() {
+  const results = [];
+  for (const path of JSON_PATHS) {
+    try {
+      const r = await fetch(path);
+      if (!r.ok) { console.warn('Failed to fetch', path, r.status); continue; }
+      const json = await r.json();
+      if (Array.isArray(json.products)) results.push(...json.products);
+    } catch (e) {
+      console.error('Error loading', path, e);
+    }
+  }
+  return results;
+}
+
+/* ---------- choose product by id param (expects string ids like "P001" or "U003") ---------- */
+(async function init() {
+  const all = await loadAllProducts();
+  if (!all || all.length === 0) {
+    console.error('No products loaded from JSON files.');
+  }
+
+  // read id from URL (exact string match). fallback to first product
+  const idParam = (getParam('id') || '').trim();
+  product = (idParam ? all.find(p => String(p.id) === idParam) : null) || all[0] || {
+    id: 'UNKNOWN', title:'Product not found', desc:'No description available', category:'', img:'', originalPrice:0, salePrice:0, percentBadge:0
+  };
+
+  // render UI
+  renderProduct(product);
+  renderSizes();
+  setupQtyControls();
+  setupAddToCart();
+  updateHeaderCartCount();
+})();
+
+/* ---------- render product into DOM (no flat discount — use salePrice/originalPrice from product) ---------- */
+function renderProduct(p){
+  // main image
+  mainImgEl.src = p.img || '';
+  mainImgEl.alt = p.title || '';
+
+  // basic text
+  titleEl.textContent = p.title || '';
+  descEl.textContent = p.desc || '';
+  categoryEl.textContent = p.category || '';
+
+  // prices: show orig only when greater than sale
+  const base = Number(p.originalPrice) || 0;
+  const sale = Number(p.salePrice) || 0;
+  origPriceEl.textContent = (base && base > sale) ? formatRs(base) : '';
+  salePriceEl.textContent = sale ? formatRs(sale) : (base ? formatRs(base) : '');
+
+  // badge: prefer percentBadge from JSON; if missing but orig>sale compute percentage
+  const pct = Number(p.percentBadge || 0);
+  if (pct > 0) {
+    badgeEl.style.display = '';
+    badgeEl.textContent = pct + '% OFF';
+  } else if (base > sale && base > 0) {
+    const computed = Math.round(((base - sale) / base) * 100);
+    badgeEl.style.display = computed > 0 ? '' : 'none';
+    badgeEl.textContent = (computed > 0 ? computed + '% OFF' : '');
+  } else {
+    badgeEl.style.display = 'none';
+  }
+
+  // thumbnails: create a few clickable thumbs (we use the same image URL as fallback)
+  thumbsEl.innerHTML = '';
+  const sources = makeThumbSources(p.img);
+  sources.forEach((src,i)=>{
+    const d = document.createElement('div');
+    d.className = 'thumb' + (i===0 ? ' active' : '');
+    d.setAttribute('role','button');
+    d.setAttribute('tabindex','0');
+    d.innerHTML = `<img src="${src}" alt="thumb ${i+1}">`;
+    d.addEventListener('click', ()=> switchThumb(i, src, d));
+    d.addEventListener('keypress', (e)=> { if (e.key==='Enter' || e.key===' ') switchThumb(i, src, d); });
+    thumbsEl.appendChild(d);
+  });
+  activeThumb = 0;
+}
+
+/* create small set of thumbnail sources — safe when only single img exists */
+function makeThumbSources(imgUrl){
+  if (!imgUrl) return ['', '', '', ''];
+  // If image hostname is picsum.photos we can create a few variants using the seed pattern;
+  // otherwise just return the same URL multiple times (still OK).
+  try {
+    const u = new URL(imgUrl);
+    if (u.hostname.includes('picsum.photos')) {
+      // attempt to preserve seed if present, create 3 variants by appending dummy query param
+      return [
+        imgUrl,
+        imgUrl + '?v=1',
+        imgUrl + '?v=2',
+        imgUrl + '?v=3'
+      ];
+    }
+  } catch (e) {}
+  // fallback: return same image repeated so UI still works
+  return [imgUrl, imgUrl, imgUrl, imgUrl];
+}
+
+function switchThumb(i, src, thumbEl){
+  q('.thumb').forEach(t=>t.classList.remove('active'));
+  thumbEl.classList.add('active');
+  mainImgEl.src = src;
+  activeThumb = i;
+}
+
+/* ---------- sizes rendering ---------- */
+const SIZE_OPTIONS = ['XS','S','M','L','XL','XXL'];
+function renderSizes(){
+  // detect "unstitched" using whole-word check (case-insensitive)
+  const isUnstitched = /\bunstitched\b/i.test(String(product.category || ''));
+  if(isUnstitched){
+    if(sizesEl) sizesEl.style.display = 'none';
+    if(sizeLabelEl) sizeLabelEl.style.display = 'none';
+    if(sizeGuideEl) sizeGuideEl.style.display = 'none';
+    selectedSize = '';
+    return;
+  } else {
+    if(sizesEl) sizesEl.style.display = '';
+    if(sizeLabelEl) sizeLabelEl.style.display = '';
+    if(sizeGuideEl) sizeGuideEl.style.display = '';
+    if(!selectedSize) selectedSize = 'M';
+  }
+
+  sizesEl.innerHTML = '';
+  SIZE_OPTIONS.forEach(sz=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'size-btn' + (sz===selectedSize ? ' selected' : '');
+    btn.textContent = sz;
+    btn.addEventListener('click', ()=> {
+      selectedSize = sz;
+      q('.size-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    sizesEl.appendChild(btn);
+  });
+}
+
+/* ---------- qty controls ---------- */
+function setupQtyControls(){
+  qty = Math.max(1, Number(qty) || 1);
+  qtyValueEl.textContent = qty;
+
+  decQtyBtn.addEventListener('click', ()=> {
+    if(qty>1) qty--;
+    qtyValueEl.textContent = qty;
+  });
+  incQtyBtn.addEventListener('click', ()=> {
+    qty++;
+    qtyValueEl.textContent = qty;
+  });
+
+  // keep display synced if something else changed it
+  setInterval(()=> { qtyValueEl.textContent = qty }, 200);
+}
+
+/* ---------- add to cart (uses product.salePrice if present, otherwise originalPrice) ---------- */
+function setupAddToCart(){
+  addToCartBtn.addEventListener('click', ()=>{
+    const unitPrice = Number(product.salePrice) || Number(product.originalPrice) || 0;
+    const isUnstitched = /\bunstitched\b/i.test(String(product.category || ''));
+
+    const item = {
+      id: product.id,
+      title: product.title,
+      category: product.category,
+      img: product.img,
+      size: isUnstitched ? '' : (selectedSize || 'M'),
+      qty: qty,
+      unitPrice: unitPrice
+    };
+
+    const cart = loadCart();
+    const existingIdx = cart.findIndex(c => c.id === item.id && String(c.size||'') === String(item.size||''));
+    if(existingIdx >= 0) {
+      cart[existingIdx].qty = (Number(cart[existingIdx].qty)||0) + Number(item.qty);
+    } else {
+      cart.push(item);
+    }
+    saveCart(cart);
+    updateHeaderCartCount();
+
+    // trigger header drawer / cart open if listeners exist
+    try {
+      const ev = new CustomEvent('openCart', { bubbles:true, cancelable:true, detail:{ source:'product' } });
+      document.dispatchEvent(ev);
+    } catch (e) {}
+
+    // small visual pulse if header count exists
+    const cntEl = document.getElementById('cartCount');
+    if (cntEl) {
+      cntEl.classList.remove('cart-pulse');
+      void cntEl.offsetWidth;
+      cntEl.classList.add('cart-pulse');
+    }
+  });
+}
+
+
+// Replace with your image link:
+const sizeGuideImgURL = "bodyimages/Women suit size guide.png";
+
+document.getElementById("openSizeGuide").addEventListener("click", function (e) {
+  e.preventDefault();
+  document.getElementById("sizeGuideModal").style.display = "flex";
+  document.getElementById("sizeGuideImage").src = sizeGuideImgURL;
+});
+
+document.querySelector(".close").addEventListener("click", function () {
+  document.getElementById("sizeGuideModal").style.display = "none";
+});
+
+// Close modal when clicking outside the image
+document.getElementById("sizeGuideModal").addEventListener("click", function (e) {
+  if (e.target === this) {
+    this.style.display = "none";
+  }
+});
+
+
+</script>
+
+</body>
+</html>

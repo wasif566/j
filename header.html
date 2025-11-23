@@ -1,0 +1,745 @@
+<!-- TOP TICKER + HEADER (non-destructive: uses spacer to preserve structure) -->
+<div class="top-ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Free Shipping All Over Pakistan 🚚 — Get 25% & 20% OFF!✨</span>
+    <span>Free Shipping All Over Pakistan 🚚 — Get 25% & 20% OFF!✨</span>
+  </div>
+</div>
+
+
+<header class="site-header" role="banner" aria-label="Site header">
+  <div class="logo">
+<div class="mark" aria-hidden="false">
+  <!-- Adjust src if you placed the file elsewhere (e.g. "greentex-logo.png" if same folder) -->
+  <img
+    src="greentex-logo.jpg"
+  
+    alt="Green Tex"
+    width="52" height="52"
+    decoding="async"
+    loading="lazy"
+  />
+</div>
+
+    <div class="brand">
+      <h1>Green Tex</h1>
+      <p>Modern Clothing Stitched &amp; Untitched suits</p>
+    </div>
+  </div>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-item">
+        <button class="nav-link">Home</button>
+        <!-- <div class="dropdown">
+          <a href="/category/men/stitched-suits.html">Stitched Suits</a>
+          <a href="/category/men/shirts.html">Shirts</a>
+          <a href="/category/men/jackets.html">Jackets</a>
+          <a href="/category/men/accessories.html">Accessories</a>
+        </div> -->
+      </div>
+
+      <div class="nav-item">
+        <!-- <button class="nav-link">Women</button>
+        <div class="dropdown">
+          <a href="/category/women/stitched-suits.html">Stitched Suits</a>
+          <a href="/category/women/dresses.html">Dresses</a>
+          <a href="/category/women/tops.html">Tops</a>
+          <a href="/category/women/coats.html">Coats</a>
+        </div> -->
+      </div>
+
+      <div class="nav-item"><button class="nav-link">Stitched</button></div>
+      <div class="nav-item"><button class="nav-link">Unstitched</button></div>
+      <!-- <div class="nav-item"><button class="nav-link">New</button></div> -->
+    </div>
+  </nav>
+
+  <div class="utils">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M21 21l-4.35-4.35" stroke="#6b7280" stroke-width="1.5"></path>
+        <circle cx="11" cy="11" r="6" stroke="#6b7280" stroke-width="1.5"></circle>
+      </svg>
+      <input id="searchInput" placeholder="Search Stitched & Unstitched" aria-label="Search">
+    </div>
+
+    <div class="cart">
+      <button class="cart-btn" id="cartBtn" aria-label="Open cart, view items" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 7L4 9v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-2-2H6z" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 7a4 4 0 0 1 8 0" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="cart-label">Cart</span>
+        <span class="cart-count" id="cartCount" aria-live="polite" aria-atomic="true">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Spacer preserves flow so header+ticker don't overlap content -->
+<div id="headerSpacer" aria-hidden="true"></div>
+<link rel="stylesheet" href="style.css">
+<style>
+
+  /* Search suggestion dropdown — thumbnail on left, text on right (drop-in) */
+.search{position:relative}
+#searchSuggestions{position:absolute;left:0;right:0;top:48px;z-index:12000;background:#fff;border:1px solid rgba(15,23,36,0.06);box-shadow:0 12px 40px rgba(15,23,36,0.08);border-radius:8px;max-height:320px;overflow:auto;padding:6px 0;display:none;font-size:14px}
+#searchSuggestions .sugg{display:flex;flex-direction:row;align-items:center;gap:12px;padding:8px 12px;cursor:pointer;color:var(--dark);white-space:nowrap;overflow:hidden}
+#searchSuggestions .sugg img{width:56px;height:56px;flex:0 0 56px;border-radius:8px;object-fit:cover;background:#f6f6f7;margin-right:6px}
+#searchSuggestions .sugg .meta-w{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#searchSuggestions .sugg .label{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#searchSuggestions .sugg .meta{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+#searchSuggestions .sugg[aria-selected="true"],#searchSuggestions .sugg:hover{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+#searchSuggestions .sugg[aria-selected="true"] img,#searchSuggestions .sugg:hover img{filter:brightness(.95);transform:scale(1.02)}
+#searchSuggestions .sugg[aria-selected="true"] .meta,#searchSuggestions .sugg:hover .meta{color:rgba(255,255,255,0.92)}
+#searchSuggestions .sugg .meta-w .label mark{background:rgba(255,255,255,0.14);padding:0 2px;border-radius:2px}
+@media (max-width:520px){
+  #searchSuggestions{top:52px;max-height:220px;font-size:13px}
+  #searchSuggestions .sugg img{width:44px;height:44px;flex:0 0 44px}
+  #searchSuggestions .sugg{gap:10px;padding:8px}
+}
+.product.highlight{box-shadow:0 0 0 4px rgba(255,107,107,0.12);transform:translateY(-3px);transition:all .35s ease}
+
+/* Scoped header/ticker/cart styles (won't override rest of your CSS if kept consistent) */
+.top-ticker{width:100%;background:linear-gradient(90deg,#ff6b6b,#ff8a66);color:#fff;padding:6px 0;font-size:14px;font-weight:700;overflow:hidden;white-space:nowrap;position:fixed;top:0;left:0;z-index:2000;border-bottom:1px solid rgba(255,255,255,0.3)}
+/* Continuous seamless marquee — GPU accelerated, no jump/gap */
+.top-ticker {
+  width: 100%;
+  background: linear-gradient(90deg,#ff6b6b,#ff8a66);
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  z-index: 2000;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+/* Track must contain the message twice for seamless looping */
+.ticker-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 200px;                  /* gap between repeated messages */
+  will-change: transform;     /* hint for GPU */
+  /* duration will be set by JS, fallback to 12s */
+  animation: tickerScroll linear infinite;
+  animation-duration: 12s;
+  transform: translate3d(0,0,0);
+}
+
+/* Each message span is inline-block and does not shrink */
+.ticker-track span {
+  display: inline-block;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  padding-right: 10px;
+}
+
+/* Keyframes translate exactly half (since message duplicated) */
+@keyframes tickerScroll {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); } /* move half of the full width */
+}
+
+/* Make sure it pauses on :hover for accessibility (optional) */
+.top-ticker:hover .ticker-track,
+.top-ticker:focus-within .ticker-track {
+  animation-play-state: paused;
+}
+
+/* small screens adjustments */
+@media (max-width:420px){
+  .top-ticker{ padding: calc(6px + env(safe-area-inset-top,0px)) 10px; font-size:13px; }
+  .ticker-track{ gap: 40px; animation-duration: 10s; } /* fallback shorter */
+  .ticker-track span{ padding-right:8px; }
+}
+
+@keyframes tickerMove{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* site header fixed but visually scoped */
+.site-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,0.95);box-shadow:0 10px 30px rgba(15,23,36,0.06);position:fixed;left:50%;transform:translateX(-50%);z-index:1999;width:100%;max-width:var(--max-w,1200px);box-sizing:border-box;transition:box-shadow .18s}
+.site-header.scrolled{box-shadow:0 12px 40px rgba(15,23,36,0.08)}
+
+/* small utilities + cart badge */
+.cart-count{background:rgba(255,255,255,0.18);padding:4px 8px;border-radius:999px;font-weight:800;margin-left:8px;display:inline-block;min-width:28px;text-align:center;transition:transform .18s}
+.cart-pulse{animation:cartPulse .42s ease}
+@keyframes cartPulse{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.cart-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px}
+.cart-label{display:inline-block}
+@media(max-width:520px){.cart-label{display:none}}
+
+/* spacer default: zero height until JS sets it */
+#headerSpacer{height:0;transition:height .12s ease}
+
+/* Cart drawer styles (scoped) */
+.cart-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+  z-index: 3000;
+}
+.cart-drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cart-drawer {
+  position: fixed;
+  top:0px;
+  border-radius: 5px;
+  right: -420px; /* hidden off-screen */
+  width: min(420px, 95vw);
+  height: 100vh;
+  background: #fff;
+  box-shadow: -20px 0 40px rgba(2,6,23,0.12);
+  transition: right .32s cubic-bezier(.2,.9,.2,1);
+  z-index: 3001;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(15,23,36,0.04);
+  padding: 18px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.cart-drawer.open { right: 0; }
+
+.cart-drawer .head {
+  display:flex;align-items:center;gap:12px;justify-content:space-between;
+  border-bottom:1px solid rgba(15,23,36,0.04);padding-bottom:10px;
+}
+.cart-drawer h2{margin:0;font-size:18px}
+.cart-drawer .close-btn{
+  background:transparent;border:0;padding:8px;border-radius:8px;cursor:pointer; font-size: 20px;color:#393939
+}
+
+/* cart list */
+.cart-list{overflow:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+.cart-item{display:flex;gap:10px;align-items:center}
+.cart-item .thumb{width:64px;height:84px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.cart-item img{width:100%;height:100%;object-fit:cover;display:block}
+.cart-item .meta{flex:1;min-width:0}
+.cart-item .meta .title{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item .meta .meta-sub{font-size:13px;color:#6b7280;margin-top:6px}
+.cart-item .meta .qty-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.qty-control{display:inline-flex;align-items:center;border-radius:8px;border:1px solid rgba(15,23,36,0.06);overflow:hidden}
+.qty-control button{width:30px;height:30px;border:0;background:transparent;cursor:pointer;font-weight:800}
+.qty-control .val{min-width:36px;text-align:center;padding:6px 8px;font-weight:800}
+
+/* small action buttons on each item */
+.item-actions{display:flex;gap:8px;margin-left:auto}
+.edit-btn{border:0;background:transparent;padding:6px 8px;border-radius:8px;cursor:pointer;font-weight:700;color:#111}
+.remove-btn{border:0;background:transparent;color:#ef4444;font-weight:700;cursor:pointer;padding:6px}
+
+/* footer */
+.cart-drawer .footer{
+  border-top:1px solid rgba(15,23,36,0.04);padding-top:12px;display:flex;flex-direction:column;gap:8px
+}
+.subtotal-row{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.checkout-btn{padding:12px;border-radius:12px;border:0;background:linear-gradient(90deg,#ff6b6b,#ff8a66);color:#fff;font-weight:900;cursor:pointer}
+.empty-msg{text-align:center;color:#6b7280;padding:36px 6px;border-radius:8px;background:rgba(15,23,36,0.02)}
+.small-muted{font-size:13px;color:#6b7280}
+
+/* Edit modal (centered) */
+.edit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:4000;
+}
+.edit-modal-backdrop.open { display:flex; }
+.edit-modal {
+  width:100%;
+  max-width:760px;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 30px 80px rgba(2,6,23,0.25);
+  display:flex;
+  gap:18px;
+  padding:18px;
+  box-sizing:border-box;
+}
+.edit-modal .thumb { width:220px; height:260px; flex-shrink:0; border-radius:10px; overflow:hidden; background:#f6f6f7 }
+.edit-modal .thumb img { width:100%; height:100%; object-fit:cover; display:block }
+.edit-modal .content { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px }
+.edit-modal .content h3 { margin:0; font-size:18px; font-weight:900 }
+.edit-modal .size-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+.size-chip { padding:8px 12px; border-radius:8px; border:1px solid rgba(15,23,36,0.06); cursor:pointer; font-weight:800; background:transparent }
+.size-chip.selected { background:linear-gradient(90deg,#ff6b6b,#ff8a66); color:#fff; border:0; box-shadow:0 8px 24px rgba(255,107,107,0.08) }
+.size-guide { color:#6b7280; font-size:13px; margin-top:4px }
+.modal-qty { display:flex; align-items:center; gap:12px; margin-top:6px }
+.modal-qty button { width:36px; height:36px; border-radius:8px; border:1px solid rgba(15,23,36,0.06); background:#fff; font-weight:900; cursor:pointer }
+.modal-actions { display:flex; gap:8px; margin-top:12px; justify-content:flex-end }
+.btn { padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:800 }
+.btn.primary { background:linear-gradient(90deg,#ff6b6b,#ff8a66); color:#fff }
+.btn.muted { background:transparent; border:1px solid rgba(15,23,36,0.06); color:#111 }
+@media (max-width:900px){
+  .edit-modal { flex-direction:column; max-width:92vw }
+  .edit-modal .thumb { width:100%; height:320px }
+}
+
+
+
+@media (max-width:765px){
+.close-btn{
+ 
+font-size: 24px;
+
+}
+}
+
+
+
+
+</style>
+
+<!-- overlay + drawer -->
+<div id="cartDrawerOverlay" class="cart-drawer-overlay" aria-hidden="true"></div>
+<aside id="cartDrawer" class="cart-drawer" aria-hidden="true" aria-labelledby="cartDrawerLabel" role="dialog">
+  <div class="head">
+    <h2 id="cartDrawerLabel">Your cart</h2>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="small-muted" id="drawerCount">0 items</div>
+      <button id="cartDrawerClose" class="close-btn" aria-label="Close cart">✕</button>
+    </div>
+  </div>
+
+  <div class="cart-list" id="cartList" tabindex="0" aria-live="polite">
+    <!-- items injected here -->
+  </div>
+
+  <div class="footer" id="cartFooter">
+    <div class="subtotal-row">
+      <div>Subtotal</div>
+      <div id="drawerSubtotal">Rs 0</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="checkoutBtnDrawer" class="checkout-btn" style="flex:1" onclick="window.location.href='/checkout.html'">Checkout</button>
+      <button id="clearCartBtn" class="remove-btn" title="Clear cart">Clear</button>
+    </div>
+    <div class="small-muted" style="text-align:center">Free returns · Secure checkout</div>
+  </div>
+</aside>
+
+<!-- EDIT MODAL (centered) -->
+<div id="editModalBackdrop" class="edit-modal-backdrop" aria-hidden="true">
+  <div class="edit-modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="thumb" id="modalThumb"><img src="/mnt/data/Screenshot (78).png" alt=""></div>
+    <div class="content">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+        <div>
+          <h3 id="editModalTitle">Product title</h3>
+        
+        </div>
+        <button id="closeEditModalBtn" aria-label="Close edit" class="remove-btn">✕</button>
+      </div>
+
+      <div>
+        <label class="small" style="font-weight:800;margin-bottom:6px;display:block">Size</label>
+        <div class="size-row" id="modalSizes"></div>
+        <div class="size-guide">XS (34") · S (36") · M (38") · L (40") · XL (42") · XXL (44")</div>
+      </div>
+
+      <div>
+        <label class="small" style="font-weight:800;display:block;margin-bottom:6px">Quantity</label>
+        <div class="modal-qty">
+          <button id="modalDecQty" aria-label="Decrease">−</button>
+          <div id="modalQtyVal" style="font-weight:900;min-width:36px;text-align:center">1</div>
+          <button id="modalIncQty" aria-label="Increase">+</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn muted">Cancel</button>
+        <button id="modalSave" class="btn primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+
+(function(){
+  // Keep same storage key as product page
+  const STORAGE_KEY = 'clothify_cart_v1';
+  const uploadedImg = '/mnt/data/Screenshot (78).png'; // fallback
+
+  const overlay = document.getElementById('cartDrawerOverlay');
+  const drawer = document.getElementById('cartDrawer');
+  const closeBtn = document.getElementById('cartDrawerClose');
+  const cartBtn = document.getElementById('cartBtn'); // header cart button
+  const cartListEl = document.getElementById('cartList');
+  const drawerCountEl = document.getElementById('drawerCount');
+  const drawerSubtotalEl = document.getElementById('drawerSubtotal');
+  const checkoutBtn = document.getElementById('checkoutBtnDrawer');
+  const clearBtn = document.getElementById('clearCartBtn');
+
+  // Edit modal refs
+  const editBackdrop = document.getElementById('editModalBackdrop');
+  const modalThumb = document.getElementById('modalThumb');
+  const modalTitle = document.getElementById('editModalTitle');
+
+  const modalSizes = document.getElementById('modalSizes');
+  const modalQtyVal = document.getElementById('modalQtyVal');
+  const modalInc = document.getElementById('modalIncQty');
+  const modalDec = document.getElementById('modalDecQty');
+  const modalCancel = document.getElementById('modalCancel');
+  const modalSave = document.getElementById('modalSave');
+  const modalCloseBtn = document.getElementById('closeEditModalBtn');
+
+  // size options
+  const SIZE_OPTIONS = ['XS','S','M','L','XL','XXL'];
+
+  // state for editing
+  let editIndex = null;
+  let modalSelectedSize = 'M';
+  let modalQty = 1;
+
+  // formatting
+  function formatRs(n){ return 'Rs ' + Number(n).toLocaleString(); }
+
+  function loadCart(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch(e){ return [] } }
+  function saveCart(cart){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch(e){} }
+  function cartSubtotal(cart){ return cart.reduce((s,item)=> s + (Number(item.unitPrice)||0) * (Number(item.qty)||0), 0); }
+  function escapeHtml(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+  // render drawer list and add edit buttons
+  function renderCart(){
+    const cart = loadCart();
+    cartListEl.innerHTML = '';
+    if(!cart || cart.length === 0){
+      cartListEl.innerHTML = '<div class="empty-msg">Your cart is empty — add something tasty.</div>';
+      drawerCountEl.textContent = '0 items';
+      drawerSubtotalEl.textContent = formatRs(0);
+      return;
+    }
+
+    cart.forEach((it, idx) => {
+      // --- START: ensure category exists for old items ---
+if (!it.category) {
+  try {
+    // agar PRODUCTS array same page par available ho to usse lookup karo
+    if (window.PRODUCTS && Array.isArray(window.PRODUCTS)) {
+      const found = window.PRODUCTS.find(p => Number(p.id) === Number(it.id));
+      if (found && found.category) it.category = found.category;
+    }
+  } catch (e) { /* ignore errors */ }
+
+  // write back to storage so next render has category too
+  try {
+    const stored = loadCart();
+    if (stored && stored[idx] && !stored[idx].category) {
+      stored[idx].category = it.category || '';
+      saveCart(stored);
+    }
+  } catch (e) { /* ignore errors */ }
+}
+// --- END ---
+
+      const item = document.createElement('div');
+      item.className = 'cart-item';
+     item.innerHTML = `
+  <div class="thumb" aria-hidden="true"><img src="${escapeHtml(it.img||uploadedImg)}" alt=""></div>
+  <div class="meta">
+    <div class="title">${escapeHtml(it.title || '')}</div>
+    <div class="meta-sub">${escapeHtml(it.category || '')}</div>
+    
+    <div class="meta-sub">${escapeHtml(String(it.size || ''))} · ${formatRs(it.unitPrice)}</div>
+
+          <div class="qty-row">
+            <div class="qty-control" data-index="${idx}">
+              <button class="dec" aria-label="Decrease">−</button>
+              <div class="val">${Number(it.qty)}</div>
+              <button class="inc" aria-label="Increase">+</button>
+            </div>
+            <button class="remove-btn" data-index="${idx}" aria-label="Remove item">Remove</button>
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="edit-btn" data-index="${idx}" aria-label="Edit item">Edit</button>
+        </div>
+      `;
+      cartListEl.appendChild(item);
+      // hide/remove the Edit button for unstitched items (case-insensitive, whole-word)
+if (/\bunstitched\b/i.test(String(it.category || ''))) {
+  const editBtn = item.querySelector('.edit-btn');
+  if (editBtn) editBtn.remove();
+
+  // optional: agar item-actions khali reh jaaye to hide kar do
+  const actions = item.querySelector('.item-actions');
+  if (actions && actions.children.length === 0) actions.style.display = 'none';
+}
+
+    });
+
+    drawerCountEl.textContent = cart.reduce((s,i)=>s + (Number(i.qty)||0), 0) + (cart.length === 1 ? ' item' : ' items');
+    drawerSubtotalEl.textContent = formatRs(cartSubtotal(cart));
+  }
+
+  // open/close drawer
+  function openDrawer(focusFirst=true){
+    overlay.classList.add('open'); drawer.classList.add('open');
+    overlay.setAttribute('aria-hidden','false'); drawer.setAttribute('aria-hidden','false');
+    renderCart();
+    if(focusFirst) cartListEl.focus();
+    document.dispatchEvent(new CustomEvent('cartDrawerOpened'));
+  }
+  function closeDrawer(){
+    overlay.classList.remove('open'); drawer.classList.remove('open');
+    overlay.setAttribute('aria-hidden','true'); drawer.setAttribute('aria-hidden','true');
+    document.dispatchEvent(new CustomEvent('cartDrawerClosed'));
+  }
+
+  // open edit modal (populate)
+  function openEditModal(index){
+    const cart = loadCart();
+    const it = cart[index];
+    if(!it) return;
+    editIndex = index;
+    modalSelectedSize = it.size || 'M';
+    modalQty = Number(it.qty) || 1;
+
+    // set visual content
+    modalThumb.innerHTML = `<img src="${escapeHtml(it.img || uploadedImg)}" alt="">`;
+    modalTitle.textContent = it.title || 'Product';
+
+
+    // populate sizes as chips (same visual treatment as product page)
+    modalSizes.innerHTML = '';
+    SIZE_OPTIONS.forEach(sz=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className = 'size-chip' + (sz === modalSelectedSize ? ' selected' : '');
+      btn.textContent = sz;
+      btn.addEventListener('click', ()=> {
+        modalSelectedSize = sz;
+        // toggle selected class
+        modalSizes.querySelectorAll('.size-chip').forEach(c=>c.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+      modalSizes.appendChild(btn);
+    });
+
+    modalQtyVal.textContent = String(modalQty);
+
+    // show modal
+    editBackdrop.classList.add('open');
+    editBackdrop.setAttribute('aria-hidden','false');
+
+    // focus
+    modalSizes.querySelector('.size-chip.selected')?.focus();
+  }
+
+  function closeEditModal(){
+    editBackdrop.classList.remove('open');
+    editBackdrop.setAttribute('aria-hidden','true');
+    editIndex = null;
+  }
+
+  // save changes from modal back to cart
+  function saveModalChanges(){
+    if(editIndex === null) return;
+    const cart = loadCart();
+    if(!cart[editIndex]) return;
+    cart[editIndex].size = modalSelectedSize || cart[editIndex].size;
+    cart[editIndex].qty = Math.max(1, Number(modalQty) || 1);
+    saveCart(cart);
+    renderCart();
+    notifyHeaderCount();
+    closeEditModal();
+  }
+
+  // toggle handlers for modal qty
+  modalInc.addEventListener('click', ()=> {
+    modalQty = Math.max(1, Number(modalQty || 1) + 1);
+    modalQtyVal.textContent = String(modalQty);
+  });
+  modalDec.addEventListener('click', ()=> {
+    modalQty = Math.max(1, Number(modalQty || 1) - 1);
+    modalQtyVal.textContent = String(modalQty);
+  });
+
+  // modal button handlers
+  modalCancel.addEventListener('click', (e)=> { e.preventDefault(); closeEditModal(); });
+  modalCloseBtn.addEventListener('click', (e)=> { e.preventDefault(); closeEditModal(); });
+  modalSave.addEventListener('click', (e)=> { e.preventDefault(); saveModalChanges(); });
+
+  // toggle drawer by header cart button
+  cartBtn && cartBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if(drawer.classList.contains('open')) closeDrawer();
+    else openDrawer();
+  });
+
+  // listen for openCart event (from product add)
+  document.addEventListener('openCart', (ev) => {
+    setTimeout(()=> openDrawer(true), 80);
+  });
+
+  // overlay + close control
+  overlay.addEventListener('click', closeDrawer);
+  closeBtn.addEventListener('click', closeDrawer);
+
+  // ESC closes drawer or modal
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){
+      if(editBackdrop.classList.contains('open')) closeEditModal();
+      else if(drawer.classList.contains('open')) closeDrawer();
+    }
+  });
+
+  // cart list interactions (delegation)
+  cartListEl.addEventListener('click', (e) => {
+    const btn = e.target;
+
+    // Edit button
+    if(btn.matches('.edit-btn')){
+      const idx = Number(btn.dataset.index);
+      openEditModal(idx);
+      return;
+    }
+
+    // remove
+    if(btn.matches('.remove-btn')){
+      const idx = Number(btn.dataset.index);
+      const cart = loadCart();
+      if(!Number.isNaN(idx) && cart[idx]) {
+        cart.splice(idx,1);
+        saveCart(cart);
+        renderCart();
+        notifyHeaderCount();
+      }
+      return;
+    }
+
+    // qty controls (inc/dec)
+    const parent = btn.closest('.qty-control');
+    if(parent){
+      const idx = Number(parent.dataset.index);
+      const cart = loadCart();
+      if(!Number.isNaN(idx) && cart[idx]){
+        if(btn.classList.contains('inc')) cart[idx].qty = Number(cart[idx].qty||0) + 1;
+        if(btn.classList.contains('dec')) cart[idx].qty = Math.max(1, Number(cart[idx].qty||1) - 1);
+        saveCart(cart);
+        renderCart();
+        notifyHeaderCount();
+      }
+    }
+  });
+
+  // clear cart
+  clearBtn.addEventListener('click', () => {
+    saveCart([]);
+    renderCart();
+    notifyHeaderCount();
+  });
+
+  // listen to storage changes from other tabs/pages
+  window.addEventListener('storage', (ev) => {
+    if(ev.key === STORAGE_KEY || ev.key === 'cartCount'){
+      renderCart();
+    }
+  });
+
+  // notify header count helper
+  function notifyHeaderCount(){
+    try {
+      const cart = loadCart();
+      const total = cart.reduce((s, item) => s + (Number(item.qty) || 0), 0);
+      if (window.Clothify && typeof window.Clothify.setCartCount === 'function') {
+        window.Clothify.setCartCount(total, true);
+      } else {
+        try { localStorage.setItem('cartCount', String(total)); } catch(e){}
+        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: total } }));
+      }
+    } catch(e){
+      console.error(e);
+    }
+  }
+
+  // initial render (do not auto-open)
+  renderCart();
+
+  // refresh on cartUpdated events
+  document.addEventListener('cartUpdated', () => { renderCart(); });
+
+  // expose open drawer API
+  window.Clothify = window.Clothify || {};
+  window.Clothify.openCartDrawer = function(){ openDrawer(true); };
+
+})();
+</script>
+
+<script>
+(function(){
+  // Keep this script minimal & safe — it ONLY updates the spacer height and cart UI.
+  const ticker = document.querySelector('.top-ticker');
+  const header = document.querySelector('.site-header');
+  const spacer = document.getElementById('headerSpacer');
+
+  function updateSpacer(){
+    const tH = ticker ? Math.ceil(ticker.getBoundingClientRect().height) : 0;
+    const hH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    const total = tH + hH;
+    if (spacer) spacer.style.height = total + 'px';
+    if (header && ticker) header.style.top = (tH) + 'px';
+    if (header && !ticker) header.style.top = '0px';
+  }
+
+  function toggleHeaderShadow(){ if(!header) return; header.classList.toggle('scrolled', window.scrollY > 6); }
+
+  updateSpacer(); toggleHeaderShadow();
+  window.addEventListener('resize', updateSpacer);
+  window.addEventListener('load', updateSpacer);
+  window.addEventListener('scroll', toggleHeaderShadow, {passive:true});
+  if (window.ResizeObserver && (ticker || header)){
+    const ro = new ResizeObserver(updateSpacer);
+    ticker && ro.observe(ticker);
+    header && ro.observe(header);
+  }
+
+  // ---- cart UI (reads localStorage.cartCount and exposes helper) ----
+  const cartBtn = document.getElementById('cartBtn');
+  const cartCountEl = document.getElementById('cartCount');
+
+  function readCount(){ try{ const v = localStorage.getItem('cartCount'); const n=Number(v); return Number.isFinite(n) && n>=0 ? Math.floor(n) : 0;}catch(e){return 0;} }
+  function setCountUI(n, animate){ if(!cartCountEl) return; const prev = Number(cartCountEl.textContent||0); cartCountEl.textContent = String(n); cartCountEl.setAttribute('aria-label', `${n} items in cart`); if(animate && n>prev){ cartCountEl.classList.remove('cart-pulse'); void cartCountEl.offsetWidth; cartCountEl.classList.add('cart-pulse'); } }
+
+  setCountUI(readCount(), false);
+
+  cartBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (window.Clothify && typeof window.Clothify.openCartDrawer === 'function') {
+      window.Clothify.openCartDrawer();
+    } else {
+      document.dispatchEvent(new CustomEvent('openCart'));
+    }
+  });
+
+  window.addEventListener('storage', (ev)=>{ if(ev.key==='cartCount') setCountUI(readCount(), true); });
+  document.addEventListener('cartUpdated', (e)=>{ const n = Number(e?.detail?.count); if(Number.isFinite(n)) setCountUI(Math.max(0,Math.floor(n)), true); else setCountUI(readCount(), true); });
+
+  window.Clothify = window.Clothify || {};
+  window.Clothify.setCartCount = function(count, persist){
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    setCountUI(n, true);
+    if(persist){ try{ localStorage.setItem('cartCount', String(n)); }catch(e){} document.dispatchEvent(new CustomEvent('cartUpdated',{detail:{count:n}})); }
+  };
+
+})();
+
+
+</script>

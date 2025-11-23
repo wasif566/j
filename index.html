@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Clothify — Home</title>
+  <link rel="stylesheet" href="style.css"> 
+  <link rel="stylesheet" href="home&products.css">
+  <!-- <style>
+
+  </style> -->
+  
+</head>
+
+
+<body>
+  
+  <div class="container">
+
+    <!-- HEADER + FOOTER will be injected by your partial loader -->
+    <div id="siteHeader"></div>
+
+    <main>
+      
+      <!-- keep hero for this page -->
+      <section class="hero">
+        <article class="hero-card">
+          <img src="bodyimages/top2.webp" alt="Exclusive Printed Fabric Suits">
+          <div class="hero-meta">
+            <h2>Exclusive Printed Fabric Suits</h2>
+            <p>Beautiful printed unstitched suits crafted from high-quality fabric. Perfect for customizing your ideal fit and style.</p>
+          </div>
+<button class="hero-cta" onclick="window.location.href='fabric'">Explore Fabric</button>
+        </article>
+
+        <article class="hero-card">
+          <img src="bodyimages/top1.png" alt="Trendy Printed Ready Wear Collection">
+          <div class="hero-meta">
+            <h2>Trendy Printed Ready Wear Collection</h2>
+            <p>Our ready-made printed suits offer premium-quality fabric, precise tailoring, and stylish prints, giving you a polished look with zero effort</p>
+          </div>
+<button class="hero-cta" onclick="window.location.href='ready-wear'">Explore Ready Wear</button>
+        </article>
+      </section>
+
+      <section>
+       
+
+        <!-- Unstitched section (will be populated from unstitched35.json) -->
+        <div style="margin-top:28px">
+          <div class="section-title"><h3>Premium Unstitched Prints</h3></div>
+          <div id="unstitchedGrid" class="products"></div>
+
+           <div class="section-title"><h3>Ready To Wear Collection</h3></div>
+        <!-- Product grid placeholder (stitched) -->
+        <div id="productGrid" class="products"></div>
+        </div>
+      </section>
+    </main>
+
+<a id="whatsappContact" 
+   class="whatsapp-contact" 
+   href="https://wa.me/923148549885?text=Hello%2C%20I%27m%20interested%20to%20place%20an%20order.%20Please%20assist."
+   role="button" 
+   aria-label="Contact us on WhatsApp" 
+   rel="noopener" 
+   target="_blank">
+
+  <img src="bodyimages/download.png" 
+       alt="WhatsApp" 
+       width="48" 
+       height="48" 
+       loading="lazy">
+
+  <span class="whatsapp-label">Contact us</span>
+</a>
+
+
+
+    <div id="siteFooter"></div>
+  </div>
+
+  <!-- loader must come after placeholders -->
+  <script src="load-partials.js"></script>
+    <script src="site-search.js"></script>
+
+<script>
+
+  function renderProductsToGrid(items, gridId){
+  const grid = document.getElementById(gridId); if(!grid) return;
+  grid.innerHTML = '';
+  items.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'product';
+    card.setAttribute('data-product-id', String(p.id));
+    card.tabIndex = -1;
+    card.innerHTML = `
+      <div class="prod-thumb" role="button" tabindex="0" aria-label="${escapeHtml(p.title)}" data-id="${escapeHtml(p.id)}" data-img="${escapeHtml(p.img)}">
+        <img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.title)}" loading="lazy">
+        ${ p.percentBadge ? `<div class="badge-discount">${p.percentBadge}% OFF</div>` : '' }
+      </div>
+      <div class="prod-body">
+        <div class="meta-row"><span>${escapeHtml(p.category)}</span><span style="font-weight:700;color:var(--muted)">${escapeHtml(p.id)}</span></div>
+        <div class="title" role="link" tabindex="0" style="cursor:pointer" data-id="${escapeHtml(p.id)}">${escapeHtml(p.title)}</div>
+        <div class="desc">${escapeHtml(p.desc)}</div>
+        <div class="price-block">${ p.originalPrice > p.salePrice ? `<div class="orig-price">Rs ${p.originalPrice}</div>` : '' }<div class="sale-price">Rs ${p.salePrice}</div></div>
+      </div>
+    `;
+    const thumb = card.querySelector('.prod-thumb');
+    const titleEl = card.querySelector('.title');
+    const openProd = ()=> window.location.href = `product.html?id=${encodeURIComponent(p.id)}`;
+    thumb.addEventListener('click', openProd);
+    thumb.addEventListener('keypress', (e)=> { if(e.key==='Enter' || e.key===' ') openProd(); });
+    titleEl.addEventListener('click', openProd);
+    titleEl.addEventListener('keypress', (e)=> { if(e.key==='Enter' || e.key===' ') openProd(); });
+    grid.appendChild(card);
+  });
+}
+
+// homepage.js - replace the current script that loads stitched/unstitched products
+// Paths to JSON files (adjust if needed)
+const STITCHED_JSON_PATH = 'stiched35.json';   // keep your existing filename
+const UNSTITCHED_JSON_PATH = 'unstitched35.json';
+
+// how many to show each
+const STITCH_SHOW_COUNT = 8;
+const UNSTITCH_SHOW_COUNT = 8;
+
+function formatRs(n){ return 'Rs ' + Number(n).toLocaleString(); }
+function escapeHtml(s){ return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function idToNumber(id){
+  if(!id) return 0;
+  const m = String(id).match(/(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+// render cards (used by both stitched & unstitched)
+function renderProductsToGrid(items, gridId){
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  items.forEach(p=>{
+    const base = Number(p.originalPrice) || 0;
+    const sale = Number(p.salePrice) || 0;
+    const badgePercent = Number(p.percentBadge) || 0;
+    const showOrig = base > sale;
+
+    const card = document.createElement('div');
+    card.className = 'product';
+    card.innerHTML = `
+      <div class="prod-thumb" role="button" tabindex="0" aria-label="${escapeHtml(p.title)}" data-id="${escapeHtml(p.id)}" data-img="${escapeHtml(p.img)}">
+        <img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.title)}">
+        ${ badgePercent ? `<div class="badge-discount">${badgePercent}% OFF</div>` : '' }
+      </div>
+
+      <div class="prod-body">
+        <div class="meta-row">
+          <span>${escapeHtml(p.category)}</span>
+          <span style="font-weight:700;color:var(--muted)">${escapeHtml(p.id)}</span>
+        </div>
+
+        <div class="title" role="link" tabindex="0" style="cursor:pointer" data-id="${escapeHtml(p.id)}">${escapeHtml(p.title)}</div>
+        <div class="desc">${escapeHtml(p.desc)}</div>
+
+        <div class="price-block">
+          ${showOrig ? `<div class="orig-price">${formatRs(base)}</div>` : ''}
+          <div class="sale-price">${formatRs(sale)}</div>
+        </div>
+      </div>
+    `;
+
+    // navigation when clicking image or title -> product page with id param
+    const thumb = card.querySelector('.prod-thumb');
+    const titleEl = card.querySelector('.title');
+
+    const openProd = () => {
+      // navigate to product.html with id query parameter (preserve exact ID strings)
+      const id = thumb.getAttribute('data-id') || titleEl.getAttribute('data-id');
+      if(!id) return;
+      window.location.href = `product.html?id=${encodeURIComponent(id)}`;
+    };
+
+    thumb.addEventListener('click', openProd);
+    thumb.addEventListener('keypress', (e)=> { if(e.key === 'Enter' || e.key === ' ') openProd(); });
+    titleEl.addEventListener('click', openProd);
+    titleEl.addEventListener('keypress', (e)=> { if(e.key === 'Enter' || e.key === ' ') openProd(); });
+
+    grid.appendChild(card);
+  });
+}
+
+// generic loader helper that returns array or empty
+function fetchProducts(path){
+  return fetch(path).then(r=>{
+    if(!r.ok) throw new Error('Failed to load: ' + path + ' (' + r.status + ')');
+    return r.json();
+  }).then(json => {
+    if(Array.isArray(json.products)) return json.products;
+    // if top-level array:
+    if(Array.isArray(json)) return json;
+    return [];
+  }).catch(err=>{
+    console.error(err);
+    return [];
+  });
+}
+
+// load random stitched products
+function loadStitched(){
+  fetchProducts(STITCHED_JSON_PATH).then(all=>{
+    const grid = document.getElementById('productGrid');
+    if (!all || all.length === 0) {
+      if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted)">No stitched products</div>';
+      return;
+    }
+    const shuffled = shuffle(all.slice());
+    const chosen = shuffled.slice(0, STITCH_SHOW_COUNT);
+    // optional stable sort by numeric id — comment out next line if you want purely random order
+    chosen.sort((a,b) => idToNumber(a.id) - idToNumber(b.id));
+    renderProductsToGrid(chosen, 'productGrid');
+  });
+}
+
+// load random unstitched products
+function loadUnstitched(){
+  fetchProducts(UNSTITCHED_JSON_PATH).then(all=>{
+    const grid = document.getElementById('unstitchedGrid');
+    if (!all || all.length === 0) {
+      if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted)">No unstitched products</div>';
+      return;
+    }
+    const shuffled = shuffle(all.slice());
+    const chosen = shuffled.slice(0, UNSTITCH_SHOW_COUNT);
+    chosen.sort((a,b) => idToNumber(a.id) - idToNumber(b.id));
+    renderProductsToGrid(chosen, 'unstitchedGrid');
+  });
+}
+
+// helpers for collection buttons
+function goToCollection(slug){ window.location.href = `collections/${encodeURIComponent(slug)}`; }
+
+// init both grids
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadStitched();
+  loadUnstitched();
+});
+
+
+</script>
+
+</body>
+</html>

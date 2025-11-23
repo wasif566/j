@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+ <title>Green Tex — Home</title>
+  <link rel="stylesheet" href="/style.css"> 
+  <link rel="stylesheet" href="home&products.css">
+  <style>
+
+ .section-title {
+  margin-top: 110px !important;
+}
+
+
+/* Regular Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+  .section-title {
+    margin-top: 260px !important;
+  }
+}
+
+/* Small Mobile (max-width: 520px) */
+@media (max-width: 520px) {
+  .section-title {
+    margin-top: 210px !important;
+  }
+}
+
+  </style>
+</head>
+
+
+<body>
+  <div class="container">
+
+    <!-- HEADER + FOOTER will be injected by your partial loader -->
+    <div id="siteHeader"></div>
+
+    <main>
+    
+
+      <section>
+        <div class="section-title"><h3>Trendy Printed Ready Wear</h3></div>
+        <!-- Product grid placeholder (stitched) -->
+        <div id="productGrid" class="products"></div>
+
+
+<a id="whatsappContact" class="whatsapp-contact" href="#" role="button" aria-label="Contact us on WhatsApp" rel="noopener" target="_blank">
+  <img src="bodyimages/download.png" alt="WhatsApp" width="48" height="48" loading="lazy">
+  <span class="whatsapp-label">Contact us</span>
+</a>
+
+    <div id="siteFooter"></div>
+  </div>
+
+  <!-- loader must come after placeholders -->
+  <script src="load-partials.js"></script>
+      <script src="site-search.js"></script>
+<script>
+// homepage.js — modified to show ALL stitched products
+
+// Path to stitched JSON (adjust if your filename differs)
+const STITCHED_JSON_PATH = 'stiched35.json'; // <-- change to 'sticked35.json' if needed
+
+function formatRs(n){ return 'Rs ' + Number(n).toLocaleString(); }
+function escapeHtml(s){ return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function idToNumber(id){
+  if(!id) return 0;
+  const m = String(id).match(/(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+// render cards (used by stitched)
+function renderProductsToGrid(items, gridId){
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  items.forEach(p=>{
+    const base = Number(p.originalPrice) || 0;
+    const sale = Number(p.salePrice) || 0;
+    const badgePercent = Number(p.percentBadge) || 0;
+    const showOrig = base > sale;
+
+    const card = document.createElement('div');
+    card.className = 'product';
+    card.innerHTML = `
+      <div class="prod-thumb" role="button" tabindex="0" aria-label="${escapeHtml(p.title)}" data-id="${escapeHtml(p.id)}" data-img="${escapeHtml(p.img)}">
+        <img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.title)}">
+        ${ badgePercent ? `<div class="badge-discount">${badgePercent}% OFF</div>` : '' }
+      </div>
+
+      <div class="prod-body">
+        <div class="meta-row">
+          <span>${escapeHtml(p.category)}</span>
+          <span style="font-weight:700;color:var(--muted)">${escapeHtml(p.id)}</span>
+        </div>
+
+        <div class="title" role="link" tabindex="0" style="cursor:pointer" data-id="${escapeHtml(p.id)}">${escapeHtml(p.title)}</div>
+        <div class="desc">${escapeHtml(p.desc)}</div>
+
+        <div class="price-block">
+          ${showOrig ? `<div class="orig-price">${formatRs(base)}</div>` : ''}
+          <div class="sale-price">${formatRs(sale)}</div>
+        </div>
+      </div>
+    `;
+
+    // navigation when clicking image or title -> product page with id param
+    const thumb = card.querySelector('.prod-thumb');
+    const titleEl = card.querySelector('.title');
+
+    const openProd = () => {
+      const id = thumb.getAttribute('data-id') || titleEl.getAttribute('data-id');
+      if(!id) return;
+      window.location.href = `/product.html?id=${encodeURIComponent(id)}`;
+    };
+
+    thumb.addEventListener('click', openProd);
+    thumb.addEventListener('keypress', (e)=> { if(e.key === 'Enter' || e.key === ' ') openProd(); });
+    titleEl.addEventListener('click', openProd);
+    titleEl.addEventListener('keypress', (e)=> { if(e.key === 'Enter' || e.key === ' ') openProd(); });
+
+    grid.appendChild(card);
+  });
+}
+
+// generic loader helper that returns array or empty
+function fetchProducts(path){
+  return fetch(path).then(r=>{
+    if(!r.ok) throw new Error('Failed to load: ' + path + ' (' + r.status + ')');
+    return r.json();
+  }).then(json => {
+    if(Array.isArray(json.products)) return json.products;
+    if(Array.isArray(json)) return json;
+    return [];
+  }).catch(err=>{
+    console.error(err);
+    return [];
+  });
+}
+
+// load ALL stitched products
+function loadStitchedAll(){
+  fetchProducts(STITCHED_JSON_PATH).then(all=>{
+    const grid = document.getElementById('productGrid');
+    if (!all || all.length === 0) {
+      if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted)">No stitched products</div>';
+      return;
+    }
+
+    // OPTIONAL: shuffle for random ordering; comment out to keep source order
+    // const prepared = shuffle(all.slice());
+
+    // OPTIONAL: stable sort by numeric id (uncomment if you want numeric ordering)
+    // prepared.sort((a,b) => idToNumber(a.id) - idToNumber(b.id));
+
+    // If you don't use shuffle, just use 'all' directly:
+    renderProductsToGrid(all, 'productGrid');
+
+    // If you used 'prepared' above, use:
+    // renderProductsToGrid(prepared, 'productGrid');
+  });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadStitchedAll();
+  // NOTE: we intentionally do NOT call loadUnstitched() — this page shows stitched only
+});
+</script>
+
+
+</body>
+</html>
