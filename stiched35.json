@@ -1,6 +1,6 @@
 {
   "products": [
-    {"id":"GT#1001","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"gt.JPG"},
+    {"id":"GT#1001","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"gt1001.JPG"},
     {"id":"GT#1002","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"greentexproducts/GT1002.JPG"},
     {"id":"GT#1003","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"greentexproducts/GT1003.JPG"},
     {"id":"GT#1004","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"greentexproducts/GT1004.JPG"},
@@ -37,6 +37,7 @@
     {"id":"GT#1035","title":"Exclusive 2PC Khadar Printed Winter Suit – 20% Off","category":"Stitched","originalPrice":3800,"salePrice":3000,"percentBadge":20,"desc":"Stitched 2-piece khadar printed suit designed for winter Ready to wear — soft, warm, and comfortable.","img":"greentexproducts/GT1035.JPG"}
   ]
 }
+
 
 
 
