@@ -692,32 +692,33 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
 
 <script>
 (function(){
-  // Prevent double-init
-  if (window.__spacerCartInit) return;
-  window.__spacerCartInit = true;
+  // STOP if already initialized
+  if (window.__spacerBadgeInit) return;
+  window.__spacerBadgeInit = true;
 
   const CART_KEY = 'clothify_cart_v1';
-  const RETRY_DELAYS = [0, 120, 350, 900]; // attempts to cover late loading resources
+  const RETRY_DELAYS = [0, 120, 350, 900];
 
-  function log(...a){ try{ console.info('[spacer-cart]', ...a); }catch(e){} }
-  function warn(...a){ try{ console.warn('[spacer-cart]', ...a); }catch(e){} }
-  function error(...a){ try{ console.error('[spacer-cart]', ...a); }catch(e){} }
+  function safeLog(...args){ try{ console.info('[spacer-badge]', ...args); }catch(e){} }
+  function safeWarn(...args){ try{ console.warn('[spacer-badge]', ...args); }catch(e){} }
 
-  // ---------- spacer logic ----------
-  function measureAndApply(){
+  // --- Spacer logic (non-destructive, retries + reactive updates) ---
+  function measureApplySpacer(){
     const spacer = document.getElementById('headerSpacer');
     const header = document.querySelector('.site-header');
     const ticker = document.querySelector('.top-ticker');
 
-    if (!spacer) { error('No #headerSpacer found'); return false; }
-    if (!header) { error('No .site-header found'); return false; }
+    if (!spacer || !header) {
+      if (!spacer) safeWarn('No #headerSpacer found');
+      if (!header) safeWarn('No .site-header found');
+      return false;
+    }
 
-    // stable measurements
     const tH = ticker ? (ticker.offsetHeight || 0) : 0;
     const hH = header.offsetHeight || 0;
     const total = tH + hH;
 
-    // apply with important where possible to override CSS
+    // try to set with !important to override later stylesheet rules
     try {
       spacer.style.setProperty('height', total + 'px', 'important');
       header.style.setProperty('top', tH + 'px', 'important');
@@ -726,62 +727,62 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       header.style.top = tH + 'px';
     }
 
-    const computedHeight = parseInt(window.getComputedStyle(spacer).height || '0', 10);
-    log('measure', { tH, hH, total, computedHeight });
-    return computedHeight === total;
+    const computed = parseInt(window.getComputedStyle(spacer).height || '0', 10);
+    safeLog('measured', { tH, hH, total, computed });
+    return computed === total;
   }
 
-  function runRetries(){
-    RETRY_DELAYS.forEach((delay, i) => {
+  function runSpacerRetries(){
+    RETRY_DELAYS.forEach((d, i) => {
       setTimeout(() => {
-        const ok = measureAndApply();
-        if (ok) log('spacer OK on attempt', i+1);
-        else log('spacer mismatch on attempt', i+1);
-      }, delay);
+        const ok = measureApplySpacer();
+        safeLog('spacer attempt', i+1, 'ok=', ok);
+      }, d);
     });
   }
 
-  function scheduleReactiveUpdates(){
+  function setupSpacerReactive(){
     let raf = null;
     const job = () => {
       if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => { measureAndApply(); raf = null; });
+      raf = requestAnimationFrame(() => { measureApplySpacer(); raf = null; });
     };
     window.addEventListener('resize', job, { passive: true });
     window.addEventListener('orientationchange', job, { passive: true });
-
     if (window.ResizeObserver) {
       try {
         const ro = new ResizeObserver(job);
-        const header = document.querySelector('.site-header');
-        const ticker = document.querySelector('.top-ticker');
-        header && ro.observe(header);
-        ticker && ro.observe(ticker);
-      } catch(e){}
+        const h = document.querySelector('.site-header');
+        const t = document.querySelector('.top-ticker');
+        if (h) ro.observe(h);
+        if (t) ro.observe(t);
+      } catch(e) { /* ignore */ }
     }
   }
 
+  // Init spacer: run on load/pageshow/DOMContentLoaded
   function initSpacer(){
-    // run on load/pageshow/domready with retries to cover late resources & bfcache
-    if (document.readyState === 'complete') runRetries();
+    if (document.readyState === 'complete') runSpacerRetries();
     else {
-      window.addEventListener('load', runRetries, { once: true });
-      document.addEventListener('DOMContentLoaded', () => setTimeout(runRetries, 16), { once: true });
+      window.addEventListener('load', runSpacerRetries, { once: true });
+      document.addEventListener('DOMContentLoaded', () => setTimeout(runSpacerRetries, 16), { once: true });
     }
-    window.addEventListener('pageshow', runRetries);
-    scheduleReactiveUpdates();
-    // extra verification in a short while (covers fonts/images that reflow)
-    setTimeout(() => { measureAndApply(); }, 600);
+    window.addEventListener('pageshow', runSpacerRetries);
+    setupSpacerReactive();
+    // one last safety check
+    setTimeout(() => measureApplySpacer(), 700);
   }
 
-  // ---------- cart badge logic ----------
-  function readFromCartArray(){
+  // --- Cart badge logic (read-only; doesn't overwrite your cart code) ---
+  function readCountFromCartArray(){
     try {
       const raw = localStorage.getItem(CART_KEY) || '[]';
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr)) return 0;
       return arr.reduce((s, it) => s + (Number(it.qty) || 0), 0);
-    } catch(e){ return 0; }
+    } catch (e) {
+      return 0;
+    }
   }
 
   function readCartCount(){
@@ -789,19 +790,19 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       const v = localStorage.getItem('cartCount');
       const n = Number(v);
       if (Number.isFinite(n) && n >= 0) return Math.floor(n);
-      return readFromCartArray();
-    } catch(e){
-      return readFromCartArray();
+      return readCountFromCartArray();
+    } catch (e) {
+      return readCountFromCartArray();
     }
   }
 
-  function setCartBadge(n, animate){
+  function setCartBadge(value, animate){
     const el = document.getElementById('cartCount');
-    if (!el) { warn('No #cartCount element'); return; }
+    if (!el) { safeWarn('No #cartCount element found'); return; }
     const prev = Number(el.textContent || 0);
-    el.textContent = String(n);
-    el.setAttribute('aria-label', `${n} items in cart`);
-    if (animate && n > prev) {
+    el.textContent = String(value);
+    el.setAttribute('aria-label', `${value} items in cart`);
+    if (animate && value > prev) {
       el.classList.remove('cart-pulse');
       void el.offsetWidth;
       el.classList.add('cart-pulse');
@@ -809,10 +810,10 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
   }
 
   function initCartBadge(){
-    // initial
+    // initial read
     setCartBadge(readCartCount(), false);
 
-    // storage updates from other tabs or scripts
+    // listen for storage changes (other tabs or scripts)
     window.addEventListener('storage', (ev) => {
       if (!ev.key) return;
       if (ev.key === 'cartCount' || ev.key === CART_KEY) {
@@ -820,46 +821,48 @@ if (/\bunstitched\b/i.test(String(it.category || ''))) {
       }
     });
 
-    // event-based updates within same page
+    // listen for app events (your code already dispatches 'cartUpdated')
     document.addEventListener('cartUpdated', (e) => {
       const n = Number(e?.detail?.count);
       if (Number.isFinite(n)) setCartBadge(Math.max(0, Math.floor(n)), true);
       else setCartBadge(readCartCount(), true);
     });
 
-    // expose stable setter for other scripts
+    // if some code calls window.Clothify.setCartCount, do not overwrite it.
+    // But if it doesn't exist, expose a lightweight setter that updates the badge.
     window.Clothify = window.Clothify || {};
     if (typeof window.Clothify.setCartCount !== 'function') {
       window.Clothify.setCartCount = function(count, persist){
         const n = Math.max(0, Math.floor(Number(count) || 0));
         setCartBadge(n, true);
         if (persist) {
-          try { localStorage.setItem('cartCount', String(n)); } catch(e){}
+          try { localStorage.setItem('cartCount', String(n)); } catch(e) {}
           document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: n } }));
         }
       };
     }
   }
 
-  // ---------- start ----------
+  // --- start ---
   try {
     initSpacer();
     initCartBadge();
-    // diagnostic check if computed spacer is still zero shortly after init
+
+    // final check after a bit: if computed spacer is zero, print helpful diagnostics
     setTimeout(() => {
       const s = document.getElementById('headerSpacer');
       if (s) {
         const ch = parseInt(window.getComputedStyle(s).height || '0', 10);
         if (ch === 0) {
-          warn('Computed headerSpacer height is 0 after init — please check for later CSS rules overriding it (search for "#headerSpacer" and "!important").');
-          // print some debug info
-          log('styleSheets loaded:', document.styleSheets.length);
-        } else log('final spacer height:', ch);
+          safeWarn('headerSpacer computed height is 0 after init — check for CSS overriding rules (search for "#headerSpacer" in Styles).');
+          safeLog('styleSheets loaded:', document.styleSheets.length);
+        } else {
+          safeLog('headerSpacer final height:', ch);
+        }
       }
     }, 1200);
   } catch (e) {
-    error('init error', e);
+    safeWarn('spacer-badge init error', e);
   }
-
 })();
 </script>
