@@ -1,111 +1,81 @@
 document.addEventListener("partialsLoaded", () => {
-
-  // CONFIG: update filenames/paths if needed
-  const JSON_PATHS = ['stiched35.json', 'unstitched35.json'];
-  const PRODUCT_PAGE = 'product.html';
-
   const input = document.getElementById("searchInput");
   if (!input) return;
 
-  /* Create dropdown element once */
   let suggBox = document.getElementById("searchSuggestions");
   if (!suggBox) {
     suggBox = document.createElement("div");
     suggBox.id = "searchSuggestions";
-    // ensure parent's positioning so absolute CSS works
-    input.parentElement.style.position = input.parentElement.style.position || 'relative';
     input.parentElement.appendChild(suggBox);
   }
 
   let ALL_PRODUCTS = [];
 
-  const safeLower = v => (v === null || v === undefined) ? '' : String(v).toLowerCase();
-
-  /* Load from both JSON files (waits and merges arrays) */
   async function loadAllProducts() {
+    // use canonical filenames — make sure these exist
+    const map = [
+      { path: "stiched35.json", source: "stitched" },
+      { path: "unstitched35.json", source: "unstitched" }
+    ];
+
     const arr = [];
-    for (const p of JSON_PATHS) {
+    for (const entry of map) {
       try {
-        const r = await fetch(p);
-        if (!r.ok) { console.warn('Failed to fetch', p, r.status); continue; }
+        const r = await fetch(entry.path);
+        if (!r.ok) { console.warn("Failed load", entry.path, r.status); continue; }
         const j = await r.json();
-        if (Array.isArray(j.products)) arr.push(...j.products);
-        else if (Array.isArray(j)) arr.push(...j);
+        if (Array.isArray(j.products)) {
+          // tag each product with its source before merging
+          j.products.forEach(p => {
+            p._source = entry.source;
+            arr.push(p);
+          });
+        }
       } catch (e) {
-        console.error("LOAD ERR:", p, e);
+        console.error("LOAD ERR:", entry.path, e);
       }
     }
     ALL_PRODUCTS = arr;
-    console.info('Search: loaded products count =', ALL_PRODUCTS.length);
   }
 
-  /* highlight matched text */
-  function highlight(txt, q) {
-    if (!txt) return '';
-    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return String(txt).replace(new RegExp("(" + esc + ")", "ig"), "<mark>$1</mark>");
-  }
+  loadAllProducts();
 
-  function escapeHtml(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-  /* Render suggestions (safe) */
   function renderSuggestions(q) {
-    const query = String(q || '').trim().toLowerCase();
-    if (!query) {
+    q = String(q || "").trim().toLowerCase();
+    if (!q) {
       suggBox.style.display = "none";
       return;
     }
 
-    const matches = ALL_PRODUCTS.filter(p => {
-      const title = safeLower(p.title);
-      const cat = safeLower(p.category);
-      const id = safeLower(String(p.id || ''));
-      return title.includes(query) || cat.includes(query) || id.includes(query);
+    const match = ALL_PRODUCTS.filter(p => {
+      const title = String(p.title || "").toLowerCase();
+      const cat = String(p.category || "").toLowerCase();
+      const id = String(p.id || "").toLowerCase();
+      return title.includes(q) || cat.includes(q) || id.includes(q);
     }).slice(0, 10);
 
-    if (!matches.length) {
-      suggBox.innerHTML = `<div class="sugg" role="option" aria-selected="false" style="padding:10px">No results</div>`;
+    if (!match.length) {
+      suggBox.innerHTML = `<div class="sugg">No results</div>`;
       suggBox.style.display = "block";
       return;
     }
 
     suggBox.innerHTML = "";
-
-    matches.forEach(p => {
-      const id = (p.id === undefined || p.id === null) ? '' : String(p.id);
-      const title = p.title || '';
-      const cat = p.category || '';
-      const img = p.img || '';
-
+    match.forEach(p => {
       const div = document.createElement("div");
       div.className = "sugg";
-      div.setAttribute('role','option');
-      div.setAttribute('tabindex','0');
-      div.dataset.pid = id;
       div.innerHTML = `
-        ${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(title)}">` : ''}
+        <img src="${p.img || ''}" alt="">
         <div class="meta-w">
-          <div class="label">${highlight(title, query)}</div>
-          <div class="meta">${escapeHtml(cat)} · ${escapeHtml(String(id))}</div>
+          <div class="label">${highlight(p.title || '', q)}</div>
+          <div class="meta">${p.category || ''} · ${p.id} · ${p._source}</div>
         </div>
       `;
 
-      // stopPropagation to avoid document click hiding race and navigate safely
-      div.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        if (!id) {
-          console.warn('Search: clicked product has no id', p);
-          return;
-        }
-        const trimmed = String(id).trim();
-        const dest = PRODUCT_PAGE + '?id=' + encodeURIComponent(trimmed);
-        console.info('Search: navigating to', dest);
-        window.location.href = dest;
-      });
-
-      // keyboard activation
-      div.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); div.click(); }
+      // include source param so product page knows which JSON to read
+      div.addEventListener("click", () => {
+        const url = `product.html?source=${encodeURIComponent(p._source)}&id=${encodeURIComponent(p.id)}`;
+        window.location.href = url;
       });
 
       suggBox.appendChild(div);
@@ -114,51 +84,21 @@ document.addEventListener("partialsLoaded", () => {
     suggBox.style.display = "block";
   }
 
-  /* debounce helper */
-  function debounce(fn, wait = 120) {
-    let t;
-    return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
+  function highlight(txt, q) {
+    if (!q) return txt;
+    const reg = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig");
+    return txt.replace(reg, "<mark>$1</mark>");
   }
 
-  /* Input listener (enabled after products loaded) */
-  (async function initSearch() {
-    await loadAllProducts(); // WAIT for data
+  input.addEventListener("input", () => renderSuggestions(input.value));
 
-    const handler = debounce(() => renderSuggestions(input.value || ''), 90);
-    input.addEventListener("input", handler);
-
-    input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') {
-        ev.preventDefault();
-        const first = suggBox.querySelector('.sugg');
-        if (first) { first.click(); return; }
-        // fallback: open first matching product from ALL_PRODUCTS
-        const q = String(input.value || '').trim().toLowerCase();
-        if (q) {
-          const fb = ALL_PRODUCTS.find(p => safeLower(p.title).includes(q) || safeLower(p.category).includes(q) || String(p.id || '').toLowerCase().includes(q));
-          if (fb && fb.id) window.location.href = PRODUCT_PAGE + '?id=' + encodeURIComponent(String(fb.id).trim());
-        }
-      } else if (ev.key === 'ArrowDown') {
-        const first = suggBox.querySelector('.sugg');
-        if (first) first.focus();
-      }
-    });
-
-    // Hide when clicking outside (use mousedown to avoid race with item click)
-    document.addEventListener('mousedown', (e) => {
-      if (!suggBox.contains(e.target) && e.target !== input) {
-        suggBox.style.display = 'none';
-      }
-    });
-
-    // show when focusing input if it has value
-    input.addEventListener('focus', () => {
-      if (input.value && input.value.trim()) renderSuggestions(input.value);
-    });
-
-  })().catch(err => console.error('Search init failed', err));
-
+  document.addEventListener("click", (e) => {
+    if (!suggBox.contains(e.target) && e.target !== input) {
+      suggBox.style.display = "none";
+    }
+  });
 });
+
 
 (function(){
   // ====== CONFIG: Replace with your number (international, no plus) ======
