@@ -17,7 +17,7 @@ header.scrolled{box-shadow:var(--shadow-strong)}
 nav{flex:1;display:flex;justify-content:center}
 .nav-inner{display:flex;gap:14px;align-items:center}
 .nav-item{position:relative}
-.nav-link{padding:10px 14px;border-radius:10px;background:transparent;border:0;cursor:pointer;font-weight:700}
+.nav-link{padding:10px ; color: #303030 14px;border-radius:10px;background:transparent;border:0;cursor:pointer;font-weight:700}
 .nav-link:hover{background:var(--glass)}
 .dropdown{position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 0px);min-width:220px;background:var(--card);border-radius:10px;padding:8px;border:1px solid rgba(15,23,36,0.06);box-shadow:0 12px 30px rgba(15,23,36,0.06);display:none;z-index:2500;box-sizing:border-box}
 .nav-item:hover .dropdown{display:block}
@@ -164,6 +164,40 @@ nav{flex:1;display:flex;justify-content:center}
 
 
 
+/* Navigation bar container */
+.nav-inner {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+/* Each nav item wrapper */
+.nav-item {
+  position: relative;
+}
+
+/* Nav links styling */
+.nav-link {
+  text-decoration: none;
+  font-weight: 700;
+  color: #111;
+  padding: 8px 4px;
+  display: inline-block;
+  cursor: pointer;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+/* Hover effect */
+.nav-link:hover {
+  color: #ff6b6b;        /* your accent color */
+  transform: translateY(-2px);  /* small lift animation */
+}
+
+/* Active page underline */
+.nav-link.active {
+  color: #ff6b6b;
+  border-bottom: 2px solid #ff6b6b;
+}
 
 
 
