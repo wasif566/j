@@ -34,12 +34,64 @@ nav{flex:1;display:flex;justify-content:center}
 .hero{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:120px}
 .hero-card{position:relative;height:420px;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(15,23,36,0.06);display:flex;align-items:flex-end}
 .hero-card img{position:absolute;inset:0;cursor:pointer;width:100%;height:100%;object-fit:cover;transition:transform .6s}
+
+
 .hero-card:hover img{transform:scale(1.08)}
 .hero-meta{opacity:0;visibility:hidden;transform:translateY(20px);transition:.35s ease}
 .hero-card:hover .hero-meta{opacity:1;visibility:visible;transform:translateY(0)}
 .hero-meta{position:relative;z-index:2;padding:24px;color:#fff}
-.hero-meta h2{margin:-150px 0 8px;font-size:26px;text-shadow:0 10px 30px rgba(0,0,0,0.5)}
-.hero-cta{position:absolute;right:18px;bottom:18px;background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:10px;border:0;font-weight:800;cursor:pointer}
+/* Ensure hero card is a positioned container for absolute CTA */
+.hero-card {
+  position: relative; /* required so .hero-cta absolute positioning is inside the card */
+}
+
+/* Make the anchor look & behave exactly like a button and ensure full hit area */
+.hero-cta {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 0;
+  font-weight: 800;
+  cursor: pointer;
+
+  /* KEY: make the whole rectangle clickable */
+  display: inline-flex;         /* or inline-block — inline-flex helps centering contents */
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  line-height: 1;
+
+  /* make sure nothing sits on top of the CTA */
+  z-index: 3;
+}
+
+/* Product thumb: make the entire thumbnail area clickable (image + padding) */
+.prod-thumb {
+  display: block;       /* block-level so padding/area becomes clickable */
+  width: 100%;
+  cursor: pointer;
+  position: relative;   /* allow overlays inside */
+  z-index: 1;
+}
+
+/* Ensure the image fills the thumb and does not leave invisible inline gaps */
+.prod-thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none; /* image itself won't swallow pointer events (thumb handles clicks) */
+}
+
+/* If you use a discount badge or overlay, it should not block clicks */
+.badge-discount, .prod-thumb > .badge-discount {
+  pointer-events: none; /* allow clicks through badge to the thumb */
+  z-index: 2;
+}
+
 .section-title{text-align:center;cursor:pointer;margin:28px 0}
 .products{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .product{background:var(--card);border-radius:12px;padding:10px;border:1px solid rgba(15,23,36,0.04);box-shadow:0 8px 24px rgba(15,23,36,0.04);display:flex;flex-direction:column;position:relative}
@@ -72,8 +124,22 @@ nav{flex:1;display:flex;justify-content:center}
 .footer-links a:hover{color:var(--dark)}
 .payment-icons{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
 .payment-icons svg{width:44px;height:26px;border-radius:6px;background:#f1f5f9;padding:4px;display:block}
-.footer-bottom{margin-top:12px;border-top:1px solid rgba(15,23,36,0.04);padding-top:18px;display:flex;justify-content:center;align-items:center;gap:12px;flex-direction:column;text-align:center}
-.footer-bottom p{margin:4px 0;color:var(--muted);font-size:13px}
+/* Ensure footer-bottom always centered (add to your stylesheet) */
+.footer-bottom{
+  width:100%;
+  box-sizing:border-box;
+  margin-top:18px;
+  border-top:1px solid rgba(15,23,36,0.04);
+  padding-top:18px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  gap:8px;
+  flex-direction:column; /* keeps text stacked on very small screens */
+}
+.footer-bottom p{margin:0;color:var(--muted);font-size:13px;}
+
 @media(max-width:1100px){.products{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:520px){.hero{grid-template-columns:1fr;margin-top:220px}.products{grid-template-columns:repeat(2,1fr)}.search input{width:140px}}
 @media(max-width:520px){header{flex-direction:column;align-items:stretch;gap:12px;padding:10px}.nav-inner{overflow:auto;padding:6px}.products{grid-template-columns:repeat(2,1fr);gap:12px}.prod-thumb{height:220px}.product{padding:2px;border-radius:10px}.hero-card{height:260px}.hero-meta h2{font-size:20px;margin:-90px 0 6px}.search{min-width:140px}.search input{width:180px;font-size:12px}.footer-grid{grid-template-columns:1fr;gap:12px}.footer{padding:20px}.container{padding:12px}}
