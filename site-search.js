@@ -14,7 +14,7 @@ document.addEventListener("partialsLoaded", () => {
   async function loadAllProducts() {
     // use canonical filenames — make sure these exist
     const map = [
-      { path: "stiched35.json", source: "stitched" },
+      { path: "stitched35.json", source: "stitched" },
       { path: "unstitched35.json", source: "unstitched" }
     ];
 
@@ -139,3 +139,4 @@ document.addEventListener("partialsLoaded", () => {
   // if you use partial loader which emits 'partialsLoaded', attach again after partials loaded
   document.addEventListener('partialsLoaded', attachWhatsapp);
 })();
+
