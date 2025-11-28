@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Green Tex — Home</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Clothify — Home</title>
+  <link rel="stylesheet" href="style.css"> 
   <link rel="stylesheet" href="home&products.css">
   <!-- <style>
 
@@ -23,27 +23,26 @@
 
     <main>
       
-     <section class="hero">
-  <article class="hero-card">
-    <img src="top2.webp" alt="Exclusive Printed Fabric Suits">
-    <div class="hero-meta">
-      <h2>Exclusive Printed Fabric Suits</h2>
-      <p>Beautiful printed unstitched suits crafted from high-quality fabric. Perfect for customizing your ideal fit and style.</p>
-    </div>
+      <!-- keep hero for this page -->
+      <section class="hero">
+        <article class="hero-card">
+          <img src="top2.webp" alt="Exclusive Printed Fabric Suits">
+          <div class="hero-meta">
+            <h2>Exclusive Printed Fabric Suits</h2>
+            <p>Beautiful printed unstitched suits crafted from high-quality fabric. Perfect for customizing your ideal fit and style.</p>
+          </div>
+<button class="hero-cta" onclick="window.location.href='fabric'">Explore Fabric</button>
+        </article>
 
-    <a class="hero-cta" href="unstitched.html" role="button">Explore Fabric</a>
-  </article>
-
-  <article class="hero-card">
-    <img src="top1.png" alt="Trendy Printed Ready Wear Collection">
-    <div class="hero-meta">
-      <h2>Trendy Printed Ready Wear Collection</h2>
-      <p>Our ready-made printed suits offer premium-quality fabric, precise tailoring, and stylish prints, giving you a polished look with zero effort.</p>
-    </div>
-
-    <a class="hero-cta" href="stitched.html" role="button">Explore Ready To Wear</a>
-  </article>
-</section>
+        <article class="hero-card">
+          <img src="top1.png" alt="Trendy Printed Ready Wear Collection">
+          <div class="hero-meta">
+            <h2>Trendy Printed Ready Wear Collection</h2>
+            <p>Our ready-made printed suits offer premium-quality fabric, precise tailoring, and stylish prints, giving you a polished look with zero effort</p>
+          </div>
+<button class="hero-cta" onclick="window.location.href='ready-wear'">Explore Ready Wear</button>
+        </article>
+      </section>
 
       <section>
        
@@ -121,8 +120,8 @@
 
 // homepage.js - replace the current script that loads stitched/unstitched products
 // Paths to JSON files (adjust if needed)
-const STITCHED_JSON_PATH = 'stitched.json';   // keep your existing filename
-const UNSTITCHED_JSON_PATH = 'unstitched.json';
+const STITCHED_JSON_PATH = 'stiched35.json';   // keep your existing filename
+const UNSTITCHED_JSON_PATH = 'unstitched35.json';
 
 // how many to show each
 const STITCH_SHOW_COUNT = 8;
