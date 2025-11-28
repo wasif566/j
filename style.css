@@ -132,12 +132,14 @@ nav{flex:1;display:flex;justify-content:center}
   border-top:1px solid rgba(15,23,36,0.04);
   padding-top:18px;
   display:flex;
-  justify-content:center;
+  justify-content:center;   /* center horizontally */
   align-items:center;
   text-align:center;
   gap:8px;
-  flex-direction:column; /* keeps text stacked on very small screens */
+  flex-direction:column;
+  grid-column: 1 / -1;      /* ensure it spans whole grid if still inside .footer-grid */
 }
+
 .footer-bottom p{margin:0;color:var(--muted);font-size:13px;}
 
 @media(max-width:1100px){.products{grid-template-columns:repeat(3,1fr)}}
@@ -264,6 +266,7 @@ nav{flex:1;display:flex;justify-content:center}
   color: #ff6b6b;
   border-bottom: 2px solid #ff6b6b;
 }
+
 
 
 
