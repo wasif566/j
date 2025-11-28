@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clothify — Checkout</title>
+  <title>Green Tex — Checkout</title>
   
   <style>
 
@@ -312,23 +312,25 @@ html.modal-open, body.modal-open{
     <div class="topbar">
       <div class="brand">
    
-<div class="mark" aria-hidden="false">
-  <!-- Adjust src if you placed the file elsewhere (e.g. "greentex-logo.png" if same folder) -->
-  <img
-    src="greentex-logo.jpg"
-  
-    alt="Green Tex"
-    width="52" height="52"
-    decoding="async"
-    loading="lazy"
-  />
-</div>
+<a href="index.html" aria-label="Go to Home" style="display:inline-block;">
+  <div class="mark" aria-hidden="false">
+    <img
+      src="greentex-logo.jpg"
+      alt="Green Tex"
+      width="52"
+      height="52"
+      decoding="async"
+      loading="lazy"
+    />
+  </div>
+</a>
+
         <div>
           <div style="font-weight:700">Green Tex</div>
           <div style="font-size:13px;color:var(--muted)">Modern Clothing Stitched &amp; Untitched suits</div>
         </div>
       </div>
-      <div><a class="home" href="home.html">← Back to shop</a></div>
+      <div><a class="home" href="index.html">← Back to shop</a></div>
     </div>
 
     <div class="wrap">
@@ -619,9 +621,9 @@ const fileInput = document.getElementById('cfFile');
 const stitchedPolicyEl = document.getElementById('stitchedPolicy');
 
 const paymentData = {
-  easypaisa: { label: 'EasyPaisa', name: 'Hassan', number: '0300-2345678' },
-  jazzcash:  { label: 'JazzCash',  name: 'Aisha',  number: '0311-7654321' },
-  bank:      { label: 'Bank Account', name: 'Sara', number: '1234567890123456' }
+  easypaisa: { label: 'EasyPaisa', name: 'Muhammad Hassan', number: '03148549885' },
+  jazzcash:  { label: 'JazzCash',  name: 'Muhammad Hassan',  number: '03148549885' },
+  bank:      { label: 'Bank Alfalah', name: 'Myuhammad Hassan', number: '04891008713382' }
 };
 
 function initShippingUI(){
@@ -754,7 +756,7 @@ function renderSummary(){
     `;
     itemsEl.appendChild(ph);
     const btn = document.getElementById('returnShopBtn');
-    if(btn) btn.addEventListener('click', ()=> { window.location.href = 'home.html'; });
+    if(btn) btn.addEventListener('click', ()=> { window.location.href = 'index.html'; });
   } else {
     cart.forEach((it, idx) => {
       if(!it.category){
@@ -875,8 +877,8 @@ async function buildProductMap(){
         return Array.isArray(j) ? j : null;
       }catch(e){ return null; }
     };
-    const a = await tryFetch('/stiched.json') || await tryFetch('/stitched.json') || await tryFetch('/stich35.json');
-    const b = await tryFetch('/unstiched.json') || await tryFetch('/unstitched.json') || await tryFetch('/unstich35.json');
+    const a = await tryFetch('stiched.json') || await tryFetch('stitched.json') || await tryFetch('stich35.json');
+    const b = await tryFetch('unstiched.json') || await tryFetch('unstitched.json') || await tryFetch('unstich35.json');
     if(a) pushList(a);
     if(b) pushList(b);
   }
@@ -1114,7 +1116,8 @@ document.getElementById('continueBtn')?.addEventListener('click', async function
   const message = buildFormattedOrderMessage(cart, productMap, details, provKey, isCod);
   const encoded = encodeURIComponent(message);
 
-  const SELLER_PHONE = '923266438812';
+const SELLER_PHONE = '923148549885';
+
   const seller = SELLER_PHONE && SELLER_PHONE.trim();
   let waUrl = '';
   if(seller){
